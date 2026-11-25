@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BörsenBoss – Aktien-Simulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1f2240;--muted:#6b6f95;--green:#00c853;--red:#ff4d6d;--blue:#3a86ff;--purple:#9d4edd;--yellow:#ffbe0b;--orange:#ff8a1c;--pink:#ff5cc8}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--ink);font:600 14px/1.35 'Fredoka','Baloo 2',system-ui,sans-serif;
+ background-color:#4cc9ff;
+ background-image:linear-gradient(rgba(255,255,255,.13) 2px,transparent 2px),linear-gradient(90deg,rgba(255,255,255,.13) 2px,transparent 2px),linear-gradient(160deg,#4cc9ff 0%,#7b5cff 55%,#ff5cc8 100%);
+ background-size:38px 38px,38px 38px,100% 100%;background-attachment:fixed}
+.wrap{max-width:1140px;margin:auto;padding:14px}
+.card{background:#fff;border:3px solid var(--ink);border-radius:16px;box-shadow:0 5px 0 var(--ink);padding:12px}
+h2{font-size:16px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center;gap:6px}
+small,.muted{color:var(--muted)}
+.pos{color:var(--green)}.neg{color:var(--red)}
+
+/* Header */
+.top{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.logo{width:44px;height:44px;background:var(--yellow);border:3px solid var(--ink);border-radius:12px;box-shadow:0 4px 0 var(--ink);display:grid;place-items:center;font-size:24px;transform:rotate(-7deg)}
+h1{margin:0;font-size:28px;font-weight:700;color:#fff;letter-spacing:.5px;text-shadow:2px 2px 0 var(--ink),-2px 2px 0 var(--ink),2px -2px 0 var(--ink),-2px -2px 0 var(--ink),0 5px 0 var(--ink)}
+.daypill{background:#fff;border:3px solid var(--ink);border-radius:999px;padding:5px 12px;box-shadow:0 3px 0 var(--ink);font-weight:700}
+.spacer{flex:1}
+.overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:16px;background:rgba(31,34,64,.55);backdrop-filter:blur(4px)}
+.startbox{background:#fff;border:3px solid var(--ink);border-radius:20px;box-shadow:0 7px 0 var(--ink);padding:22px;max-width:900px;width:100%;text-align:center}
+.startbox h1{font-size:40px;margin:6px 0 0}
+.startbox .sub{margin:4px 0 16px;color:var(--muted);font-size:16px}
+.logo.big{width:64px;height:64px;font-size:36px;margin:auto}
+.diffs{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.diff{font:inherit;color:#fff;background:var(--c);border:3px solid var(--ink);border-radius:16px;box-shadow:0 5px 0 var(--ink);padding:14px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;text-shadow:0 2px 0 rgba(0,0,0,.25);transition:transform .08s}
+.diff:hover{transform:translateY(-3px) rotate(-1deg)}
+.diff:active{transform:translateY(3px);box-shadow:0 2px 0 var(--ink)}
+.diff .de{font-size:40px}.diff b{font-size:20px}.diff small{font-size:12px;line-height:1.3;min-height:48px;color:#fff;opacity:.95}
+.dtags{display:flex;flex-direction:column;gap:3px;width:100%}
+.dtags span{background:rgba(255,255,255,.92);color:var(--ink);text-shadow:none;border-radius:8px;font-size:11px;padding:2px 4px}
+@media(max-width:760px){.diffs{grid-template-columns:1fr 1fr}.startbox h1{font-size:30px}}
+.modeToggle{display:flex;gap:6px;justify-content:center;margin:10px 0 14px}
+.modeToggle button{font:inherit;font-weight:700;border:3px solid var(--ink);border-radius:12px;padding:8px 18px;background:#eef0ff;cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+.modeToggle button.active{background:var(--blue);color:#fff}
+.shopSection{text-align:left;border-top:2px dashed #e4e7f7;margin-top:14px;padding-top:12px}
+.shopSection h3{margin:0 0 8px}
+.shopItem{display:flex;justify-content:space-between;align-items:center;background:#f4f6ff;border-radius:12px;padding:8px 12px;margin-bottom:6px}
+.bgGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.bgCard{border:3px solid var(--ink);border-radius:12px;height:54px;cursor:pointer;position:relative;display:flex;align-items:flex-end;justify-content:center;font-size:11px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);font-weight:700;padding-bottom:3px}
+.bgCard.equipped{outline:3px solid var(--yellow);outline-offset:2px}
+.bgCard .lockdot{position:absolute;top:3px;right:4px;font-size:13px}
+.roomList{text-align:left;max-height:180px;overflow:auto;margin-bottom:6px}
+.roomRow{display:flex;justify-content:space-between;align-items:center;background:#f4f6ff;border-radius:10px;padding:7px 10px;margin-bottom:5px;cursor:pointer}
+.roomRow:hover{background:#e4e7f7}
+.codebox{font-size:34px;letter-spacing:8px;font-weight:800;background:#f4f6ff;border-radius:14px;padding:14px;margin:12px 0}
+.duoDot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#ccc;margin-right:6px}
+.duoDot.on{background:var(--green)}
+.landWrap{display:flex;gap:0;align-items:flex-start}
+.landWrap .wall{width:10px;align-self:stretch;background:repeating-linear-gradient(45deg,#8b8f9e,#8b8f9e 6px,#6b6f7e 6px,#6b6f7e 12px);border-radius:4px;margin:0 8px}
+.landSide{flex:1;min-width:0}
+.landSide h4{margin:0 0 4px;font-size:13px;display:flex;align-items:center;gap:5px}
+.landSide.theirs{opacity:.85}
+.landSide.theirs #mapOther{pointer-events:none}
+.landgrid.duo{grid-template-columns:minmax(0,1fr)}
+.landgrid.duo .landside{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.landgrid.duo .tile{font-size:clamp(11px,1.5vw,24px)}
+.landgrid.duo .map{gap:2px;padding:4px}
+@media(max-width:760px){.landWrap{flex-direction:column}.landWrap .wall{width:auto;height:10px;margin:8px 0}}
+.loanpill{background:var(--yellow)}.loanpill.urgent{background:var(--red);color:#fff;animation:bump 1s infinite}
+.bsmall{font-size:12px;color:var(--muted);margin:0 0 8px}
+.loans{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.loanbtn{font:inherit;font-size:11px;line-height:1.2;color:var(--ink);background:#eafff0;border:3px solid var(--ink);border-radius:10px;padding:5px 3px;cursor:pointer;box-shadow:0 3px 0 var(--ink);text-align:center}
+.loanbtn .e{display:block;font-size:20px}.loanbtn b{display:block}.loanbtn .amt{display:block;font-size:13px;font-weight:700;color:var(--green)}
+.loanbtn:hover:not(:disabled){background:#fff6d1}
+.loanbtn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.loanbtn:disabled{filter:grayscale(.9);opacity:.45;cursor:not-allowed}
+.loanbox{font-size:13px;display:grid;gap:5px}
+.loanbox .row{display:flex;justify-content:space-between}
+#lBar{background:linear-gradient(90deg,var(--green),var(--yellow));transition:width .9s linear}
+#lBar.urgent{background:var(--red)}
+.music{display:flex;align-items:center;gap:6px}
+.music .btn.on{background:var(--pink);color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.2)}
+#musicVol{width:80px;accent-color:var(--pink);display:none}
+.music.playing #musicVol{display:block}
+
+/* Buttons */
+.btn{font:inherit;font-weight:700;border:3px solid var(--ink);border-radius:12px;padding:8px 14px;cursor:pointer;color:#fff;box-shadow:0 4px 0 var(--ink);text-shadow:0 2px 0 rgba(0,0,0,.22);transition:transform .06s,box-shadow .06s,filter .15s}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn:disabled{filter:grayscale(.85);opacity:.55;cursor:not-allowed}
+.green{background:var(--green)}.red{background:var(--red)}.blue{background:var(--blue)}.purple{background:var(--purple)}
+.white{background:#fff;color:var(--ink);text-shadow:none}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:12px}
+.stat{position:relative;border:3px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 var(--ink);padding:7px 12px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.2)}
+.stat label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;opacity:.95}
+.stat strong{display:block;font-size:20px;font-weight:700;white-space:nowrap}
+.s-cash{background:var(--yellow);color:var(--ink);text-shadow:none}
+.s-inc{background:var(--green)}.s-dep{background:var(--blue)}.s-tot{background:var(--purple)}
+.s-pro{background:#fff;color:var(--ink);text-shadow:none}
+.s-dia{background:linear-gradient(135deg,#22d3ee,#6366f1)}
+.float{position:absolute;right:10px;top:4px;font-weight:700;color:var(--green);text-shadow:0 2px 0 #fff;pointer-events:none;animation:up .9s ease-out forwards}
+@keyframes up{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-26px)}}
+.bump{animation:bump .25s}
+@keyframes bump{50%{transform:scale(1.08)}}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:12px;align-items:start}
+.col{display:grid;gap:12px}
+
+/* Market */
+.stock{display:flex;align-items:center;gap:9px;padding:6px 8px;margin-bottom:6px;background:#f4f6ff;border:3px solid #dfe3f6;border-radius:12px;cursor:pointer;transition:transform .08s,border-color .1s}
+.stock:last-child{margin-bottom:0}
+.stock:hover{transform:translateY(-1px);border-color:#b9c1ea}
+.stock.selected{background:#fff6d1;border-color:var(--ink)}
+.coin{position:relative;flex:none;width:34px;height:34px;border:3px solid var(--ink);border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:16px;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.coin.big{width:42px;height:42px;font-size:20px}
+.chk{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;background:var(--green);border:2px solid var(--ink);font-size:10px;display:grid;place-items:center;text-shadow:none}
+.info{flex:1;min-width:0}.info b{display:block;line-height:1.15}.info small{font-size:11px}
+.right{text-align:right}.price{font-weight:700}.change{font-size:11px}
+
+/* Detail */
+.dhead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.dhead h2{margin:0}.dhead .pill{margin-left:auto}
+.pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;border:2px solid var(--ink);background:#eef0fb;white-space:nowrap}
+.pill.own{background:var(--green);color:#fff}
+.chartbox{height:130px;background:#f7f8ff;border:3px solid #dfe3f6;border-radius:12px;padding:4px;margin-bottom:8px}
+canvas{width:100%;height:100%;display:block}
+.mrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.m{background:#f4f6ff;border-radius:10px;padding:6px 10px}.m span{display:block;font-size:11px;color:var(--muted)}.m b{font-size:17px}
+.barrow{display:grid;grid-template-columns:92px 1fr 40px;align-items:center;gap:8px;margin-bottom:6px;font-size:12px}
+.barrow b{text-align:right}
+.bar{height:14px;background:#e9ebf8;border:2px solid var(--ink);border-radius:8px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:5px;transition:width .4s}
+#interestBar{background:linear-gradient(90deg,var(--orange),var(--red))}
+#potentialBar{background:linear-gradient(90deg,var(--yellow),var(--green))}
+.trade{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.ads{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.adbtn{font:inherit;font-size:11px;line-height:1.15;color:var(--ink);background:#eaf2ff;border:3px solid var(--ink);border-radius:10px;padding:4px 2px;cursor:pointer;box-shadow:0 3px 0 var(--ink);text-align:center}
+.adbtn .e{display:block;font-size:20px}.adbtn .c{color:var(--blue);font-weight:700}
+.adbtn:hover:not(:disabled){background:#fff6d1}
+.adbtn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.adbtn:disabled{filter:grayscale(.9);opacity:.45;cursor:not-allowed}
+.trade .btn{font-size:13px;padding:8px 6px;white-space:nowrap}
+
+/* Side */
+.holding{display:flex;align-items:center;gap:8px;padding:5px 7px;background:#f4f6ff;border-radius:10px;margin-bottom:5px;font-size:13px}
+.holding:last-child{margin-bottom:0}
+.holding .coin{width:26px;height:26px;font-size:12px;border-width:2px;border-radius:8px}
+.holding .info small{color:var(--green)}
+.empty{color:var(--muted);font-size:13px;padding:4px 0}
+.statchart{height:90px;background:#f7f8ff;border:3px solid #dfe3f6;border-radius:12px;padding:4px;margin-bottom:8px}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sg{background:#f4f6ff;border-radius:10px;padding:5px 9px}.sg span{display:block;font-size:11px;color:var(--muted)}.sg b{font-size:14px}
+.goStats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0;text-align:left}
+
+/* News & help */
+.feed{display:grid;gap:5px;max-height:132px;overflow:auto}
+#market{max-height:430px;overflow-y:auto;padding-right:2px}
+.coin{font-size:15px}
+.slots{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:2px solid var(--ink);background:#eef0fb}
+.slots.full{background:var(--yellow)}.slots.over{background:var(--red);color:#fff}
+.news{border-left:5px solid var(--blue);background:#f4f6ff;border-radius:0 8px 8px 0;padding:4px 8px;font-size:12px;display:flex;justify-content:space-between;gap:8px}
+.news small{white-space:nowrap}
+.news.good{border-color:var(--green)}.news.bad{border-color:var(--red)}.news.trade{border-color:var(--yellow)}
+details summary{cursor:pointer;font-weight:700}
+details ul{margin:8px 0 0;padding-left:18px;font-size:12px;color:var(--muted)}details li{margin-bottom:3px}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--yellow);border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink);padding:9px 16px;border-radius:12px;font-weight:700;opacity:0;pointer-events:none;transition:.2s;z-index:9}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Grundstück */
+.land{margin-top:0}
+.landgrid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px;align-items:start}
+.map{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:3px;background:#3fae4c;border:3px solid var(--ink);border-radius:14px;padding:6px;box-shadow:inset 0 0 0 3px #7be585}
+.tile{position:relative;aspect-ratio:1;min-width:0;min-height:0;border-radius:7px;background:#6bd66f;display:grid;place-items:center;cursor:pointer;font-size:clamp(15px,2.4vw,32px);line-height:1;transition:transform .08s}
+.tile.alt{background:#62cc66}
+.tile .tier{position:absolute;top:1px;left:3px;font-size:9px;color:var(--yellow);text-shadow:0 0 2px var(--ink),0 0 2px var(--ink);letter-spacing:-1px}
+.map.placing .tile.same{outline:3px dashed #fff;outline-offset:-4px}
+.tile.up{animation:pop .55s}
+@keyframes pop{0%{transform:scale(.5)}60%{transform:scale(1.3) translateY(-3px)}100%{transform:translateY(-2px)}}
+.tile.dragging{opacity:.4}
+.tile.dropok{outline:3px solid var(--yellow)!important;outline-offset:-3px}
+.tabs{display:flex;gap:6px}
+.tab{font:inherit;font-weight:700;border:3px solid var(--ink);border-radius:12px;padding:7px 13px;background:#fff;color:var(--ink);cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform .06s,box-shadow .06s}
+.tab.active{background:var(--green);color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.2);transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.tab.land.active{background:#2fbf4f}
+.hidden{display:none!important}
+.tool.locked{cursor:default;background:repeating-linear-gradient(45deg,#f4f6ff 0 6px,#eceffd 6px 12px)}
+.tool.locked .c{color:var(--purple)}
+.diarow{display:flex;align-items:center;gap:8px;background:#f4f6ff;border-radius:10px;padding:5px 7px;margin-bottom:5px;font-size:12px}
+.diarow .de{font-size:20px}
+.diarow .dt{flex:1;line-height:1.25}
+.diarow.have{background:#eafff0;border:2px solid var(--green)}
+.diabig{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#e0f7ff,#ede9fe);border:3px solid var(--ink);border-radius:12px;padding:8px 10px;margin-bottom:8px}
+.diabig .n{font-size:26px;font-weight:700;line-height:1}
+.diabig .t{flex:1;font-size:12px;line-height:1.3;color:var(--muted)}
+.rbbox{background:#fff6d1;border:3px solid var(--ink);border-radius:12px;padding:8px 10px;font-size:12px;line-height:1.35}
+.rbbox b{font-size:13px}
+.appbox{display:flex;align-items:center;gap:8px;background:#eafff0;border:2px solid var(--ink);border-radius:10px;padding:5px 8px;font-size:12px;margin-bottom:8px}
+.appbox.wait{background:#f1f3fc}
+.appbox b{flex:1;line-height:1.2}
+#workers{max-height:300px;overflow-y:auto;padding-right:2px}
+.worker{background:#f4f6ff;border-radius:10px;padding:6px;margin-bottom:6px}
+.wtop{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.wtop .wn{font-size:19px}
+.wtop .ws{flex:1;font-size:11px;line-height:1.25;color:var(--muted)}
+.wtop .ws b{color:var(--ink)}
+.wups{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.upb{font:inherit;font-weight:600;font-size:10px;line-height:1.25;color:var(--ink);background:#fff;border:2px solid var(--ink);border-radius:8px;padding:3px 2px;cursor:pointer;box-shadow:0 2px 0 var(--ink);text-align:center}
+.upb .e{display:block;font-size:16px}
+.upb .pr{color:var(--blue);font-weight:700}
+.upb:hover:not(:disabled){background:#fff6d1}
+.upb:active:not(:disabled){transform:translateY(2px);box-shadow:none}
+.upb:disabled{filter:grayscale(.85);opacity:.5;cursor:not-allowed}
+.upb.max{background:var(--green);color:#fff;border-color:var(--ink)}
+.upb.max .pr{color:#fff}
+.hrow{display:grid;grid-template-columns:26px 1fr auto 30px 30px;gap:6px;align-items:center;background:#f4f6ff;border-radius:10px;padding:4px 6px;margin-bottom:4px}
+.hrow.none{opacity:.5}
+.hrow .he{font-size:20px;text-align:center}
+.hrow b{font-size:12px;display:block;line-height:1.1}.hrow small{font-size:10px;display:block;line-height:1.2}
+.hrow .hc{font-size:11px;text-align:right;white-space:nowrap;line-height:1.2}
+.mini{font:inherit;font-weight:700;width:30px;height:28px;border:2px solid var(--ink);border-radius:8px;color:#fff;cursor:pointer;box-shadow:0 3px 0 var(--ink);padding:0;font-size:16px;line-height:1}
+.mini:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.mini:disabled{filter:grayscale(.9);opacity:.4;cursor:not-allowed}
+.levels div{background:#f4f6ff;border-radius:8px;padding:3px 6px;font-size:11px;line-height:1.25}
+.levels b{font-size:12px}.levels small{display:block}
+.tile:hover{outline:3px solid #fff;outline-offset:-3px}
+.tile.b{border:2px solid var(--ink);box-shadow:0 3px 0 var(--ink);transform:translateY(-2px)}
+.tile.b:hover{transform:translateY(-4px)}
+.tile.sel{outline:3px solid var(--yellow);outline-offset:1px}
+.tile .occ{position:absolute;bottom:1px;right:3px;font-size:9px;font-weight:700;color:var(--ink);background:#fffc;border-radius:4px;padding:0 2px;line-height:1.3}
+.map.placing .tile:not(.b):hover::after{content:var(--ghost);opacity:.55}
+.landside{display:grid;gap:10px}
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.tool{font:inherit;font-size:11px;line-height:1.15;color:var(--ink);background:#f4f6ff;border:3px solid #dfe3f6;border-radius:10px;padding:5px 2px;cursor:pointer;text-align:center}
+.tool .e{display:block;font-size:22px;margin-bottom:2px}
+.tool .c{color:var(--muted)}
+.tool:hover{border-color:#b9c1ea}
+.tool.active{border-color:var(--ink);background:#fff6d1}
+.tool.poor .c{color:var(--red)}
+.toolhead{font-size:12px;color:var(--muted);margin:6px 0 4px}
+.team{display:flex;flex-wrap:wrap;gap:2px;font-size:20px;min-height:26px;margin:6px 0}
+.teamrow{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.twobtn{display:grid;grid-template-columns:1.4fr 1fr;gap:6px}
+.twobtn .btn{padding:7px 6px;font-size:13px}
+.info{font-size:13px}.info .e{font-size:30px;float:left;margin-right:8px}
+.teamhint{font-size:11px;color:var(--green);margin-top:-2px;min-height:14px}
+
+@media(max-width:980px){.landgrid{grid-template-columns:1fr}.landside{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.landside{grid-template-columns:1fr}}
+@media(max-width:980px){.layout{grid-template-columns:1fr 1fr}.col.side{grid-column:1/-1;grid-template-columns:1fr 1fr}.stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.layout,.col.side{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.s-cash{grid-column:1/-1}h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <header class="top">
+  <div class="logo">💰</div>
+  <h1>BörsenBoss</h1>
+  <span class="daypill">📅 <span id="day">Tag 1</span></span>
+  <span class="daypill" id="diffPill" style="color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.25)">⚖️ Mittel</span>
+  <span class="daypill loanpill hidden" id="loanPill" title="Zeit bis die Bank ihr Geld zurückholt">🏦 <span id="loanPillTxt">1:30</span></span>
+  <div class="tabs"><button class="tab active" id="tabMarket">📈 Börse</button><button class="tab land" id="tabLand">🌳 Grundstück</button></div>
+  <span class="spacer"></span>
+  <div class="music"><button class="btn white" id="musicBtn" title="Entspannte Hintergrundmusik">🎵 Aus</button><input type="range" id="musicVol" min="0" max="1" step="0.05" value="0.5" title="Lautstärke"></div>
+  <button class="btn white" id="reset" title="Spiel zurücksetzen – neu starten">↺</button>
+  <button class="btn purple" id="next">☀️ Nächster Tag</button>
+ </header>
+
+ <section class="stats">
+  <div class="stat s-cash" id="cashBox"><label>💰 Kontostand</label><strong id="cash">100,00 €</strong></div>
+  <div class="stat s-inc" id="incBox" title="Alle 2,5 Sekunden ist Zahltag: Aktien + Team minus Gehälter"><label>⚡ Pro Zahltag (2,5 s)</label><strong id="income">+0,00 €</strong></div>
+  <div class="stat s-dep"><label>💼 Depotwert</label><strong id="portfolio">0,00 €</strong></div>
+  <div class="stat s-tot"><label>💎 Vermögen</label><strong id="total">100,00 €</strong></div>
+  <div class="stat s-pro"><label>📈 Gewinn</label><strong id="profit">0,00 €</strong></div>
+  <div class="stat s-dia" id="diaBox" title="Diamanten geben dauerhaft +1 % Geld pro Stück"><label>💎 Diamanten</label><strong id="diamonds">0</strong></div>
+ </section>
+
+ <main class="layout" id="viewMarket">
+  <div class="col">
+   <section class="card"><h2>🏪 Aktienmarkt <span class="slots" id="slots" title="So viele Aktien kannst du besitzen: 1 pro Büro mit Mitarbeiter">📦 0 / 0</span></h2><div id="market"></div></section>
+   <section class="card"><h2>📰 News</h2><div class="feed" id="feed"></div></section>
+   <details class="card"><summary>❓ So funktioniert's</summary><ul>
+    <li><b>Börsentag:</b> Nur auf 🌱 Einfach kannst du den Tag selbst weiterschalten. Sonst läuft er alle <b>5 Minuten</b> automatisch weiter – und dabei wird der Shop aufgefüllt, es meldet sich also garantiert ein neuer Bewerber.</li>
+    <li><b>Zahltag:</b> Alle <b>2,5 Sekunden</b> bekommst du Geld – von deinen Aktien (3 % vom Kurs pro Sekunde) und von deinem Team. Gehälter werden dabei abgezogen.</li>
+    <li>Von jeder Firma kannst du nur <b>eine</b> Aktie besitzen.</li>
+    <li><b>Interesse</b> schwankt schnell und bewegt den Kurs.</li>
+    <li><b>Potenzial</b> ist die Qualität der Firma.</li>
+    <li><b>Werbung</b> (Flyer bis TV-Spot) erhöht das Interesse – der Kurs steigt sofort ein bisschen und am nächsten Tag stärker. Plakat & TV erhöhen auch das Potenzial.</li>
+    <li><b>Aktien-Plätze:</b> Du kannst nur so viele Aktien besitzen, wie du Büros mit mindestens einem Mitarbeiter hast.</li>
+    <li><b>Schwierigkeit:</b> Bei ↺ kannst du neu starten und eine andere Stufe wählen. Ab Mittel gibt es Krisen, in denen eine Aktie dich kurz Geld kostet.</li>
+    <li><b>Bank:</b> Öffnet nach 2 Min. Erst gibt's nur den Kleinkredit – zahlst du pünktlich zurück, vertraut sie dir mehr (bis 150 % deines Vermögens). Nach 1:30 Min. holt die Bank Kredit + Zinsen zurück – reicht dein Geld nicht, verkauft sie deine Aktien!</li>
+    <li><b>Grundstück:</b> Büros geben Arbeitsplätze, Häuser geben Betten. Jeder Mitarbeiter kann in jedem Haus wohnen – bessere Häuser haben mehr Betten.</li>
+    <li><b>Umbauen:</b> Setz ein besseres Gebäude auf ein schlechteres derselben Art (z. B. Villa auf Zelt) – die Hälfte vom alten Preis wird angerechnet.</li>
+    <li><b>Upgrade:</b> Stell zwei gleiche Gebäude aufeinander (bauen oder ziehen) → nächste Stufe! Die höchsten Stufen gibt's nur so.</li>
+    <li><b>Mitarbeiter verbessern:</b> Alle Mitarbeiter sind gleich – stark werden sie erst durch Upgrades. Jeden kannst du einzeln in 3 Richtungen ausbauen: 💰 Geld-Boost (+50 % Verdienst), ⚡ Arbeitstempo (+40 %) und ⭐ Potenzial (+2 für deine Aktien), je 5 Stufen. Frisch eingestellt gibt er <b>kein</b> Potenzial – das musst du kaufen.</li>
+    <li><b>💎 Diamanten:</b> Bei jedem Zahltag gibt es eine Chance von 1 zu 100 auf einen Diamanten, 1 zu 200 auf zwei, 1 zu 300 auf drei und so weiter. Jeder Diamant gibt dauerhaft +1 % Geld.</li>
+    <li><b>Diamanten-Spezialisten:</b> Drei sehr teure Mitarbeiter (750 €, 1.250 €, 2.000 €) erhöhen deine Diamanten-Chance um 5 %, 10 % und 20 %. Jeden gibt es nur einmal, und auch sie brauchen Arbeitsplatz und Bett.</li>
+    <li><b>♻️ Rebirth:</b> Für 5.000 € fängst du komplett von vorn an, bekommst dafür aber dauerhaft <b>1,5× Geld</b>. Deine Diamanten behältst du. Jeder weitere Rebirth kostet 5× so viel und multipliziert erneut.</li>
+    <li><b>Bewerber:</b> Alle 6 Sekunden wird gewürfelt, ob sich jemand meldet (bis zu 3 gleichzeitig). Je größer dein Team, desto seltener (mindestens 25 %). Es gibt verschiedene Typen – 🙂 Allrounder, ⚡ Fleißig, 💰 Ehrgeizig, ⭐ Talentiert – <b>du wählst aus</b>, wen du einstellst. Wer da ist, wartet, bis du ihn einstellst.</li>
+    <li><b>Du brauchst Platz:</b> Jeder Mitarbeiter braucht einen freien Arbeitsplatz im Büro <i>und</i> ein freies Bett. Das Garagen-Büro hat nur 1 Platz – für den zweiten Mitarbeiter musst du ein Büro bauen oder upgraden!</li>
+    <li>Mit „Nächster Tag“ bewegen sich die Kurse. Alles nur Spielgeld!</li>
+   </ul></details>
+  </div>
+
+  <section class="card">
+   <div class="dhead"><div class="coin big" id="dCoin">N</div><div><h2 id="detailName">NovaTech</h2><small id="detailSector">Technologie</small></div><span class="pill" id="owned">Nicht im Depot</span></div>
+   <div class="chartbox"><canvas id="chart"></canvas></div>
+   <div class="mrow">
+    <div class="m"><span>Aktueller Kurs</span><b id="detailPrice">—</b><small id="detailFair" style="display:block;font-size:11px"></small></div>
+    <div class="m"><span>Bringt pro Zahltag</span><b id="detailIncome" class="pos">—</b></div>
+   </div>
+   <div class="barrow"><span>🔥 Interesse</span><div class="bar"><i id="interestBar"></i></div><b id="interest">—</b></div>
+   <div class="barrow"><span>⭐ Potenzial</span><div class="bar"><i id="potentialBar"></i></div><b id="potential">—</b></div>
+   <div class="teamhint" id="teamHint"></div>
+   <div class="trade">
+    <button class="btn green" id="buy">＋ Kaufen</button>
+    <button class="btn red" id="sell">− Verkaufen</button>
+   </div>
+   <div class="toolhead" style="margin:10px 0 4px">📣 Werbung schalten <span id="adInfo"></span></div>
+   <div class="ads" id="ads">
+   </div>
+  </section>
+
+  <div class="col side">
+   <section class="card"><h2>📊 Statistik</h2>
+    <div class="statchart"><canvas id="wealthChart"></canvas></div>
+    <div class="sgrid">
+     <div class="sg"><span>💸 Durch Aktien verdient</span><b id="stEarned">0,00 €</b></div>
+     <div class="sg"><span>🏆 Rekord-Vermögen</span><b id="stPeak">—</b></div>
+     <div class="sg"><span>📦 Aktien im Depot</span><b id="stOwned">0 / 5</b></div>
+     <div class="sg"><span>🛒 Käufe / Verkäufe</span><b id="stTrades">0 / 0</b></div>
+     <div class="sg"><span>⏱️ Spielzeit</span><b id="stTime">0:00</b></div>
+     <div class="sg"><span>⭐ Beste Aktie</span><b id="stBest">—</b></div>
+     <div class="sg"><span>👷 Mitarbeiter</span><b id="stStaff">0</b></div>
+     <div class="sg"><span>🧾 Team hat verdient</span><b id="stTeam">0,00 €</b></div>
+    </div>
+   </section>
+   <section class="card"><h2>💎 Diamanten &amp; Rebirth</h2><div id="dia"></div></section>
+   <section class="card"><h2>🏦 Bank</h2><div id="bank"></div></section>
+   <section class="card"><h2>💼 Dein Depot</h2><div id="holdings"></div></section>
+  </div>
+ </main>
+
+ <section class="card land hidden" id="viewLand">
+  <h2>🌳 Dein Grundstück <small style="font-size:11px">Gebäude wählen → auf Wiese klicken · 2 gleiche aufeinander = ✨ Upgrade · Gebäude ziehen zum Verschieben</small></h2>
+  <div class="landgrid">
+   <div class="landWrap" id="landWrap">
+    <div class="landSide mine">
+     <h4 id="myLandTitle" class="hidden">🏠 Dein Grundstück</h4>
+     <div class="map" id="map"></div>
+    </div>
+    <div class="wall hidden" id="landWallDiv"></div>
+    <div class="landSide theirs hidden" id="otherLandSide">
+     <h4 id="otherLandTitle"><span class="duoDot" id="otherLandDot"></span>Partner-Grundstück</h4>
+     <div class="map" id="mapOther"></div>
+    </div>
+   </div>
+   <div class="landside">
+    <div>
+     <div class="toolhead">🏢 Büros – mehr Arbeitsplätze</div><div class="tools" id="toolsOffice"></div>
+     <div class="toolhead">🏠 Häuser – Betten für Mitarbeiter</div><div class="tools" id="toolsHouse"></div>
+    </div>
+    <div class="card" style="box-shadow:0 3px 0 var(--ink);padding:10px">
+     <h2 style="font-size:14px;margin-bottom:6px">👷 Dein Team</h2>
+     <div class="teamrow">
+      <div class="sg"><span>Arbeitsplätze</span><b id="tDesks">0 / 0</b></div>
+      <div class="sg"><span>🛏️ Freie Betten</span><b id="tFree">0</b></div>
+      <div class="sg"><span>🏢 Besetzte Büros</span><b id="tStaffed">0 / 0</b></div>
+      <div class="sg"><span>📦 Aktien-Plätze</span><b id="tSlots">0 / 0</b></div>
+      <div class="sg"><span>⭐ Potenzial-Bonus</span><b id="tBonus" class="pos">+0</b></div>
+      <div class="sg"><span>💰 Team bringt (netto)</span><b id="tNet" class="pos">+0,00 €</b></div>
+     </div>
+     <div id="teamWarn" style="display:none;background:#fff1c2;border:2px solid var(--yellow);border-radius:10px;padding:5px 8px;font-size:12px;margin-bottom:6px">⚠️ Dein Team verdient erst Geld, wenn du eine Aktie gekauft hast – Gehalt kostet es trotzdem!</div>
+     <div class="team" id="team"></div>
+     <div class="toolhead" style="margin-top:2px">📋 Bewerber <span id="freeDesks"></span></div>
+     <div id="applicant"></div>
+     <div class="toolhead">💎 Diamanten-Spezialisten <span class="muted" style="font-weight:400">· je nur einmal</span></div>
+     <div id="specials"></div>
+     <div class="toolhead">🔧 Mitarbeiter verbessern</div>
+     <div id="workers"></div>
+    </div>
+    <div class="card info" id="bInfo" style="box-shadow:0 3px 0 var(--ink);padding:10px"></div>
+   </div>
+  </div>
+ </section>
+</div>
+<div class="toast" id="toast"></div>
+<div class="overlay hidden" id="lobbyScreen"><div class="startbox">
+ <div class="logo big">💰</div><h1>BörsenBoss</h1>
+ <p class="sub">💎 <b id="lobbyDia">0</b> Diamanten</p>
+ <button class="btn purple" id="lobbyShopBtn" style="width:100%;margin-top:12px;padding:11px;font-size:16px">🛍️ Shop</button>
+ <button class="btn green" id="lobbyPlayBtn" style="width:100%;margin-top:8px;padding:11px;font-size:16px">▶️ Spielen</button>
+</div></div>
+<div class="overlay hidden" id="shopScreen"><div class="startbox" style="max-width:520px">
+ <button class="btn" id="shopBack" style="float:left;padding:6px 10px">← Zurück</button>
+ <div class="logo big">🛍️</div><h1>Shop</h1>
+ <p class="sub">💎 <b id="shopDia">0</b> Diamanten</p>
+ <div class="shopSection">
+  <h3>🏕️ Starter-Upgrade</h3>
+  <div class="shopItem"><span>⛺ Gratis-Zelt direkt beim Spielstart</span><button class="btn green" id="buyFreeTent" style="padding:7px 12px">50 💎</button></div>
+ </div>
+ <div class="shopSection">
+  <h3>🎨 Design-Packs</h3>
+  <p class="bsmall" style="margin:2px 0 8px">Ein zufälliges Hintergrund-Design in 4 Seltenheiten (häufig → legendär). Du weißt vorher nicht, was drin ist!</p>
+  <button class="btn purple" id="buyPack" style="width:100%;padding:9px">🎁 Pack öffnen · 30 💎</button>
+  <div id="packReveal"></div>
+ </div>
+ <div class="shopSection">
+  <h3>🖼️ Meine Designs</h3>
+  <div class="bgGrid" id="bgGrid"></div>
+ </div>
+</div></div>
+<div class="overlay hidden" id="modeScreen"><div class="startbox">
+ <button class="btn" id="modeBack" style="float:left;padding:6px 10px">← Zurück</button>
+ <div class="logo big">🎮</div><h1>Spielen</h1>
+ <button class="btn green" id="modeCreate" style="width:100%;margin-top:16px;padding:11px;font-size:16px">➕ Gruppe erstellen</button>
+ <button class="btn blue" id="modeJoin" style="width:100%;margin-top:8px;padding:11px;font-size:16px">🔑 Gruppe beitreten</button>
+</div></div>
+<div class="overlay hidden" id="joinScreen"><div class="startbox">
+ <button class="btn" id="joinBack" style="float:left;padding:6px 10px">← Zurück</button>
+ <div class="logo big">🔑</div><h1>Gruppe beitreten</h1>
+ <p class="bsmall">Offene Gruppen in diesem Browser:</p>
+ <div id="openRooms" class="roomList"></div>
+ <div style="display:flex;gap:6px;margin-top:6px">
+  <input id="joinCode" maxlength="4" placeholder="CODE" style="flex:1;text-transform:uppercase;text-align:center;font-size:18px;letter-spacing:3px;border-radius:8px;border:2px solid #ddd;padding:8px;font-family:inherit">
+  <button class="btn blue" id="joinGo" style="padding:8px 14px">Beitreten</button>
+ </div>
+</div></div>
+<div class="overlay hidden" id="duoWaitScreen"><div class="startbox">
+ <div class="logo big">👥</div><h1 id="duoWaitTitle">Warte…</h1>
+ <p class="sub" id="duoWaitText"></p>
+ <div class="codebox" id="duoCodeBox"></div>
+ <p><span class="duoDot" id="duoDotHost"></span>Host <span style="margin-left:14px"><span class="duoDot" id="duoDotGuest"></span>Mitspieler</span></p>
+ <button class="btn green hidden" id="duoStartBtn" style="width:100%;margin-top:8px;padding:10px">🚀 Beide starten</button>
+ <button class="btn red" id="duoCancel" style="width:100%;margin-top:8px;padding:8px">Abbrechen</button>
+</div></div>
+<div class="overlay hidden" id="startScreen"><div class="startbox">
+ <button class="btn" id="startBack" style="float:left;padding:6px 10px">← Zurück</button>
+ <div class="logo big">💰</div><h1>BörsenBoss</h1>
+ <div class="modeToggle" id="soloDuoToggle">
+  <button class="active" data-m="solo" type="button">🧍 Solo</button>
+  <button data-m="duo" type="button">👥 Duo</button>
+ </div>
+ <p class="sub">Wähle deine Schwierigkeit</p>
+ <div class="diffs" id="diffs"></div>
+</div></div>
+<div class="overlay hidden" id="gameOverScreen"><div class="startbox">
+ <div class="logo big">💸</div><h1>Pleite!</h1>
+ <p class="sub" id="goText">Dein Kontostand ist zu tief gefallen.</p>
+ <div class="goStats" id="goStats"></div>
+ <button class="btn green" id="goRetry" style="margin-top:10px;padding:10px 20px;font-size:15px">🔁 Nochmal versuchen</button>
+</div></div>
+
+<script>
+// Schwierigkeitsstufen: down/up = wie stark Kurse fallen/steigen, drift = Extra-Trend pro Tag (%),
+// crisis = Chance pro Sekunde, dass eine deiner Aktien ein paar Sekunden Geld KOSTET, loans = Kredite erlaubt
+// cost = Aufschlag auf ALLE Kaufpreise (Aktien, Gebäude, Werbung, Einstellung), inc = wie viel Geld Aktien pro Sekunde bringen
+// luck = Glück der Aktien: 1 = normal, .9 = 10 % mehr Pech (gute Würfe 10 % kleiner, schlechte 10 % größer)
+const DIFF={
+ easy:    {name:'Einfach', e:'🌱',color:'#00c853',down:.3, up:1.5,drift:1,   vol:.9, swing:.12,crisis:0,     loans:true, ads:true, manualDay:true, cost:1,   inc:1,   luck:1, desc:'Aktien fallen nur ganz leicht und steigen stark. Keine Krisen, normale Preise.'},
+ normal:  {name:'Mittel',  e:'⚖️',color:'#3a86ff',down:1.2,up:1.2,drift:0,   vol:1.5,swing:.20,crisis:1/150, loans:true, ads:true, manualDay:false,cost:1.1, inc:.9,  luck:1, desc:'Kräftige Schwankungen, ab und zu eine Krise. Preise +10 %, Aktien bringen 10 % weniger.'},
+ hard:    {name:'Schwer',  e:'🔥',color:'#ff8a1c',down:1.6,up:1.1,drift:-.3, vol:1.8,swing:.24,crisis:5/80,  loans:true, ads:true, manualDay:false,cost:1.2, inc:.8,  luck:.9,loseAt:10,desc:'Kurse fallen eher, deutlich öfter Krisen. Preise +20 %, Aktien bringen 20 % weniger, 10 % mehr Pech. Unter 10 € bist du pleite!'},
+ hardcore:{name:'Hardcore',e:'💀',color:'#ff4d6d',down:2,  up:1,  drift:-.5, vol:2.1,swing:.28,crisis:10/80, loans:false,ads:false,manualDay:false,cost:1.35,inc:.65, luck:.9,loseAt:5, desc:'Wilde Ausschläge, extrem häufige Krisen, keine Kredite, keine Werbung. Preise +35 %, Aktien bringen 35 % weniger, 10 % mehr Pech. Unter 5 € bist du pleite!'}
+};
+const DAY_TIME=300; // Sekunden pro Börsentag, wenn er automatisch weiterläuft (alle außer Einfach)
+let diffKey='normal',D=DIFF.normal,started=false;
+
+// ===== Konto-weite Meta-Daten (überleben "Neues Spiel", Reset und Browser-Neustart) =====
+const BG_DESIGNS={
+ default:{name:'Standard',e:'🌈',rarity:'common',  grad:'linear-gradient(160deg,#4cc9ff 0%,#7b5cff 55%,#ff5cc8 100%)'},
+ sunset: {name:'Sonnenuntergang',e:'🌅',rarity:'common', grad:'linear-gradient(160deg,#ff9a3c 0%,#ff5e7e 55%,#9d4edd 100%)'},
+ mint:   {name:'Minze',e:'🌿',rarity:'common',  grad:'linear-gradient(160deg,#4cffb0 0%,#4cc9ff 55%,#3a86ff 100%)'},
+ candy:  {name:'Bonbon',e:'🍬',rarity:'rare',    grad:'linear-gradient(160deg,#ff5cc8 0%,#ffbe0b 55%,#4cc9ff 100%)'},
+ forest: {name:'Wald',e:'🌲',rarity:'rare',    grad:'linear-gradient(160deg,#00c853 0%,#1f8a4c 55%,#1f2240 100%)'},
+ lava:   {name:'Lava',e:'🌋',rarity:'epic',    grad:'linear-gradient(160deg,#ff4d6d 0%,#ff8a1c 55%,#2b0a0a 100%)'},
+ galaxy: {name:'Galaxie',e:'🌌',rarity:'epic',    grad:'linear-gradient(160deg,#3a0ca3 0%,#7209b7 55%,#f72585 100%)'},
+ gold:   {name:'Gold-Rausch',e:'👑',rarity:'legendary',grad:'linear-gradient(160deg,#ffd60a 0%,#ffbe0b 45%,#ff8a1c 100%)'}
+};
+const PACK_COST=30, FREE_TENT_COST=50;
+const RARITY_W={common:60,rare:27,epic:10,legendary:3};
+function loadMeta(){
+ let m=null;try{m=JSON.parse(localStorage.getItem('bb_meta'))}catch(e){}
+ return Object.assign({diamonds:0,cosmetics:['default'],freeTent:false,equippedBg:'default'},m||{});
+}
+function saveMeta(){try{localStorage.setItem('bb_meta',JSON.stringify(meta))}catch(e){}}
+let meta=loadMeta();
+function applyBg(id){
+ let d=BG_DESIGNS[id]||BG_DESIGNS.default;
+ document.body.style.backgroundImage='linear-gradient(rgba(255,255,255,.13) 2px,transparent 2px),linear-gradient(90deg,rgba(255,255,255,.13) 2px,transparent 2px),'+d.grad;
+}
+applyBg(meta.equippedBg);
+// diamonds/rebirths überleben jetzt dauerhaft (siehe meta) – nur noch rebirths wird pro Reset-Lauf genutzt,
+// Diamanten sind eine Konto-Währung und werden nie mehr auf 0 zurückgesetzt.
+let rebirths=0,specials=[],dayTimer=DAY_TIME;
+Object.defineProperty(window,'diamonds',{get:()=>meta.diamonds,set:v=>{meta.diamonds=v;saveMeta()}});
+const START=100, INCOME_RATE=0.03; // Aktien bringen 3 % ihres Kurses pro Sekunde
+const PAY_EVERY=2.5;               // Sekunden zwischen zwei Auszahlungen (Zahltag)
+// Werbearten: hype = Interesse sofort, pot = Potenzial dauerhaft, long = Langzeit-Werbepunkte (Interesse & Potenzial wachsen jeden Tag)
+// Alle Kaufpreise (Werbung, Gebäude, Aktien, Einstellung) liegen 25 % höher als ursprünglich
+const ADS={
+ flyer: {name:'Flyer',       e:'📄',cost:18.75, hype:2, pot:0, long:0,  info:'Billig, kleiner Schub'},
+ social:{name:'Social Media',e:'📱',cost:50,    hype:5, pot:0, long:0,  info:'20 % Chance: geht viral (+15 Interesse)',viral:.2},
+ radio: {name:'Radio',       e:'📻',cost:87.5,  hype:5, pot:0, long:.5, info:'Wirkt auch die nächsten Tage'},
+ poster:{name:'Plakat',      e:'🪧',cost:150,   hype:3, pot:2, long:0,  info:'Erhöht das Potenzial dauerhaft'},
+ tv:    {name:'TV-Spot',     e:'📺',cost:312.5, hype:12,pot:2, long:1,  info:'Großer Schub + Langzeitwirkung'}
+};
+const MAX_SWING=0.15; // Live-Kurs schwankt höchstens ±15 % um den Normalpreis
+const SPEED=0.025;    // Wie schnell die Kurse live steigen/sinken (vorher 0.08 – kleiner = langsamer)
+const seed=[
+ {id:'nova',name:'NovaTech',sector:'Technologie',symbol:'N',price:102.5,base:78,interest:65,potential:82,ad:0,history:[102.5],shares:0,color:'#3a86ff'},
+ {id:'green',name:'GreenLeaf',sector:'Umwelt & Energie',symbol:'G',price:57.5,base:61,interest:52,potential:74,ad:0,history:[57.5],shares:0,color:'#00c853'},
+ {id:'pixel',name:'PixelPlay',sector:'Gaming',symbol:'P',price:38.75,base:49,interest:76,potential:66,ad:0,history:[38.75],shares:0,color:'#b14dff'},
+ {id:'aero',name:'AeroMotion',sector:'Mobilität',symbol:'A',price:143.75,base:88,interest:38,potential:91,ad:0,history:[143.75],shares:0,color:'#ff8a1c'},
+ {id:'penny',name:'PennyStart',sector:'Startup',symbol:'Pe',price:18,base:28,interest:48,potential:52,ad:0,history:[18],shares:0,color:'#94a3b8'},
+ {id:'fresh',name:'FreshBite',sector:'Lebensmittel',symbol:'F',price:30,base:42,interest:58,potential:58,ad:0,history:[30],shares:0,color:'#ff4d6d'},
+ {id:'luna',name:'LunaBank',sector:'Finanzen',symbol:'L',price:325,base:70,interest:50,potential:72,ad:0,history:[325],shares:0,color:'#14b8a6'},
+ {id:'crown',name:'CrownPharma',sector:'Medizin',symbol:'C',price:675,base:80,interest:55,potential:83,ad:0,history:[675],shares:0,color:'#ec4899'},
+ {id:'robo',name:'RoboWorks',sector:'Robotik',symbol:'R',price:1100,base:85,interest:60,potential:88,ad:0,history:[1100],shares:0,color:'#64748b'},
+ {id:'gold',name:'GoldRush',sector:'Rohstoffe',symbol:'Au',price:1750,base:75,interest:45,potential:76,ad:0,history:[1750],shares:0,color:'#eab308'},
+ {id:'star',name:'StarRocket',sector:'Raumfahrt',symbol:'S',price:3250,base:92,interest:70,potential:95,ad:0,history:[3250],shares:0,color:'#6366f1'},
+ {id:'diamond',name:'DiamondAI',sector:'Künstliche Intelligenz',symbol:'D',price:6250,base:95,interest:80,potential:97,ad:0,history:[6250],shares:0,color:'#0ea5e9'},
+ {id:'quant',name:'QuantumCore',sector:'Quantencomputer',symbol:'Q',price:12500,base:93,interest:72,potential:94,ad:0,history:[12500],shares:0,color:'#8b5cf6'},
+ {id:'fusion',name:'FusionGrid',sector:'Fusionsenergie',symbol:'Fu',price:25000,base:96,interest:68,potential:96,ad:0,history:[25000],shares:0,color:'#f97316'},
+ {id:'orbit',name:'OrbitCity',sector:'Weltraum-Städte',symbol:'Or',price:50000,base:97,interest:75,potential:97,ad:0,history:[50000],shares:0,color:'#06b6d4'},
+ {id:'nano',name:'NanoLife',sector:'Nanomedizin',symbol:'Na',price:100000,base:98,interest:82,potential:98,ad:0,history:[100000],shares:0,color:'#10b981'},
+ {id:'omega',name:'OmegaWorld',sector:'Weltkonzern',symbol:'Ω',price:250000,base:99,interest:88,potential:99,ad:0,history:[250000],shares:0,color:'#facc15'}
+];
+// Grundstück: Büros = Arbeitsplätze, Häuser = Betten (jeder Mitarbeiter kann in jedem Haus wohnen)
+// 2 gleiche Gebäude aufeinander = nächste Stufe (next). Die höchsten Stufen (mergeOnly) gibt es nur durch Upgrade.
+const BUILD={
+ garage:{kind:'office',tier:1,name:'Garagen-Büro',  e:'🏚️',cost:37.5, cap:1,  bg:'#d6d3d1',next:'shop'},
+ shop:  {kind:'office',tier:2,name:'Kleines Büro',  e:'🏪',cost:100,  cap:2,  bg:'#a9c7ff',next:'office'},
+ office:{kind:'office',tier:3,name:'Bürohaus',      e:'🏢',cost:225,  cap:4,  bg:'#8fb0ff',next:'hq'},
+ hq:    {kind:'office',tier:4,name:'Firmenzentrale',e:'🏬',cost:500,  cap:8,  bg:'#7dd3fc',next:'tower'},
+ tower: {kind:'office',tier:5,name:'Wolkenkratzer', e:'🏙️',cost:1125, cap:16, bg:'#b89cff',next:'mega'},
+ mega:  {kind:'office',tier:6,name:'Mega-Tower',    e:'🗼',cost:0,    cap:32, bg:'#ff9de2',next:'ufo',mergeOnly:true},
+ ufo:   {kind:'office',tier:7,name:'UFO-Zentrale',  e:'🛸',cost:0,    cap:64, bg:'#a7f3d0',next:'planet',mergeOnly:true},
+ planet:{kind:'office',tier:8,name:'Planeten-HQ',   e:'🪐',cost:0,    cap:128,bg:'#fde68a',mergeOnly:true},
+ tent:  {kind:'house', tier:1,name:'Zelt',          e:'⛺',cost:31.25,cap:1,bg:'#d9f99d',next:'hut'},
+ hut:   {kind:'house', tier:2,name:'Hütte',         e:'🛖',cost:75,   cap:2,bg:'#e9c48a',next:'house'},
+ house: {kind:'house', tier:3,name:'Haus',          e:'🏠',cost:162.5,cap:4,bg:'#ffb3a7',next:'villa'},
+ villa: {kind:'house', tier:4,name:'Villa',         e:'🏡',cost:350,  cap:8,bg:'#ffd166',next:'castle'},
+ castle:{kind:'house', tier:5,name:'Schloss',       e:'🏰',cost:0,    cap:16,bg:'#7fe3ff',next:'palace',mergeOnly:true},
+ palace:{kind:'house', tier:6,name:'Palast',        e:'🏯',cost:0,    cap:32,bg:'#fda4af',mergeOnly:true}
+};
+// hire = einmalige Einstellungsgebühr, earn = Geld pro Sekunde, pay = Gehalt pro Sekunde, bonus = Potenzial für deine Aktien
+// Ein Mitarbeiter-Typ. Statt bessere zu kaufen, verbesserst du jeden einzeln in 3 Richtungen.
+const WORKER={base:.30, pay:.15, payPerUp:.08, hire:12.5, grow:1.6};
+const MAX_APPLICANTS=3;
+const KINDS={
+ allround:{name:'Allrounder',e:'🙂',w:55,costMult:1,start:{money:0,speed:0,pot:0},info:'Ausgeglichen, keine Boni'},
+ fleissig:{name:'Fleißig',e:'⚡',w:17,costMult:1.3,start:{money:0,speed:1,pot:0},info:'Startet mit Arbeitstempo Stufe 1'},
+ ehrgeizig:{name:'Ehrgeizig',e:'💰',w:17,costMult:1.3,start:{money:1,speed:0,pot:0},info:'Startet mit Geld-Boost Stufe 1'},
+ talent:{name:'Talentiert',e:'⭐',w:11,costMult:1.5,start:{money:0,speed:0,pot:2},info:'Startet mit Potenzial Stufe 2'}
+};
+function rollKind(){let tot=Object.values(KINDS).reduce((s,k)=>s+k.w,0),r=Math.random()*tot;
+ for(let k in KINDS){if(r<KINDS[k].w)return k;r-=KINDS[k].w}
+ return 'allround'}
+const UP={
+ money:{name:'Geld-Boost',  e:'💰',max:5,cost:40,grow:2.2,step:.5,info:'+50 % Verdienst pro Stufe'},
+ speed:{name:'Arbeitstempo',e:'⚡',max:5,cost:50,grow:2.2,step:.4,info:'+40 % Arbeitstempo pro Stufe'},
+ pot:  {name:'Potenzial',   e:'⭐',max:5,cost:60,grow:2.2,step:2, info:'+2 Potenzial für deine Aktien pro Stufe'}
+};
+const UPK=Object.keys(UP);
+// Diamanten: pro Zahltag 1 zu 100 auf 1 Diamant, 1 zu 200 auf 2, 1 zu 300 auf 3 ... bis 10
+const DIA_BASE=100, DIA_MAX=10;
+// Drei sehr teure Spezial-Mitarbeiter, die die Diamanten-Chance erhöhen. Jeden gibt es nur einmal.
+const SPECIALS={
+ d1:{name:'Diamanten-Sucher', e:'💎',cost:750, boost:.05,pay:1,  info:'+5 % Diamanten-Chance'},
+ d2:{name:'Diamanten-Experte',e:'🔱',cost:1250,boost:.10,pay:1.8,info:'+10 % Diamanten-Chance'},
+ d3:{name:'Diamanten-Magnat', e:'👑',cost:2000,boost:.20,pay:3,  info:'+20 % Diamanten-Chance'}
+};
+// Rebirth: alles auf Anfang, dafür dauerhaft 1,5× Geld. Diamanten bleiben dir.
+const REBIRTH_COST=5000, REBIRTH_MULT=1.5;
+const bedsText=n=>n===1?'1 Bett':n+' Betten';
+const COLS=14,ROWS=8;
+const newStats=()=>({earned:0,buys:0,sells:0,peak:START,seconds:0,wealth:[START],paid:0,team:0});
+// Alle Kaufpreise bekommen den Aufschlag der Schwierigkeit
+const bCost=t=>BUILD[t].cost*D.cost;          // Gebäude
+const adCost=k=>ADS[k].cost*D.cost;           // Werbung
+const hireCost=()=>WORKER.hire*Math.pow(WORKER.grow,staff.length)*D.cost; // jeder weitere kostet mehr
+const hireCostOf=kind=>hireCost()*KINDS[kind].costMult; // seltenere Typen kosten mehr
+const upCost=(k,lvl)=>UP[k].cost*Math.pow(UP[k].grow,lvl)*D.cost;         // jede Upgrade-Stufe kostet mehr
+const earnOf=w=>WORKER.base*(1+UP.money.step*w.money)*(1+UP.speed.step*w.speed);
+const potOf=w=>UP.pot.step*w.pot;
+const payOf=w=>WORKER.pay+WORKER.payPerUp*(w.money+w.speed+w.pot);
+const upsOf=w=>w.money+w.speed+w.pot;
+const specCost=k=>SPECIALS[k].cost*D.cost;
+const rebirthCost=()=>REBIRTH_COST*Math.pow(5,rebirths)*D.cost;
+// Chance auf Diamanten: Spezial-Mitarbeiter erhöhen sie
+const diaMult=()=>1+specials.reduce((a,k)=>a+SPECIALS[k].boost,0);
+// Geld-Multiplikator: jeder Rebirth ×1,5, jeder Diamant +1 %
+const moneyMult=()=>Math.pow(REBIRTH_MULT,rebirths)*(1+diamonds*.01);
+// Ein Wurf pro Zahltag: P(mindestens n Diamanten) = Chance/(100*n)
+function rollDiamonds(){
+ let m=diaMult(),r=Math.random();
+ for(let n=DIA_MAX;n>=1;n--){
+  if(r<m/(DIA_BASE*n)){diamonds+=n;
+   addNews('💎 '+(n===1?'Ein Diamant':n+' Diamanten')+' gefunden! Insgesamt: '+diamonds,'good');
+   toast('💎 '+(n===1?'Diamant':n+' Diamanten')+' gefunden!');return n}
+ }
+ return 0;
+}
+const newStocks=()=>structuredClone(seed).map(s=>{let pr=+(s.price*D.cost).toFixed(2);return {...s,price:pr,fair:pr,history:[pr],dev:0}});
+let stocks=newStocks(),cash=START,day=1,selected='nova',feedItems=[],st=newStats();
+// Startgrundstück: nur ein schlechtes Garagen-Büro – Haus bauen und Mitarbeiter einstellen musst du selbst
+const newLand=()=>({buildings:[{id:1,type:'garage',x:6,y:3,value:bCost('garage')}],staff:[]});
+let {buildings,staff}=newLand(),tool=null,selB=null,nextBid=2,dragId=null,lastUp=null,view='market';
+
+const $=id=>document.getElementById(id), euro=n=>n.toLocaleString('de-DE',{style:'currency',currency:'EUR'});
+const stock=()=>stocks.find(s=>s.id===selected);
+const depotValue=()=>stocks.reduce((a,s)=>a+s.price*s.shares,0);
+// Bank: 1 Kredit gleichzeitig, max. 150 % deines Vermögens, nach 90 Sek. wird Kredit + Zinsen fällig
+// Gegen zu frühe/zu große Kredite: Bank öffnet erst nach BANK_OPEN Sek. Spielzeit,
+// größere Kredite gibt es erst, wenn du genug Kredite pünktlich zurückgezahlt hast (need = Kreditwürdigkeit)
+const LOAN_TIME=90, BANK_BLOCK=180, BANK_OPEN=120;
+const LOANS=[
+ {name:'Kleinkredit', e:'💵',share:.5, rate:.10,need:0},
+ {name:'Normalkredit',e:'💰',share:1,  rate:.15,need:1},
+ {name:'Großkredit',  e:'💎',share:1.5,rate:.25,need:3}
+];
+let loan=null,bankBlock=0,lastBankMode=null,credit=0;
+// Bewerber: alle paar Sekunden wird gewürfelt, ob sich jemand meldet. Wer da ist, wartet auf dich.
+const HIRE_ROLL=6; // Sekunden zwischen zwei Würfen
+let applicants=[],rollTimer=0,specHouse={};
+// Je größer dein Team, desto seltener meldet sich ein neuer Bewerber (mindestens 25 %)
+function hireChance(){return Math.max(25,100/Math.pow(2,staff.length+specials.length))}
+function rerollHires(){if(applicants.length<MAX_APPLICANTS&&Math.random()*100<hireChance())applicants.push(rollKind());if(started)renderTeam()}
+const debt=()=>loan?loan.owe:0;
+const wealth=()=>cash+depotValue()-debt();
+// In einer Krise (nur Schwer/Hardcore) kostet die Aktie 60 % ihres normalen Ertrags pro Sekunde
+const incOf=s=>s.crisis>0?-s.price*INCOME_RATE*D.inc*.6:s.price*INCOME_RATE*D.inc;
+const incomePerSec=()=>stocks.reduce((a,s)=>a+(s.shares?incOf(s):0),0);
+const incHtml=s=>{let v=incOf(s)*PAY_EVERY;return `<span class="${v<0?'neg':'pos'}">${v<0?'📉 ':'+'}${euro(v)}/Zahltag</span>`};
+const offices=()=>buildings.filter(b=>BUILD[b.type].kind==='office').sort((a,b)=>a.id-b.id);
+// Mitarbeiter verteilen: erst bekommt jedes Büro einen, dann werden die Büros aufgefüllt
+function officeLoad(){let load={},n=staff.length,offs=offices();offs.forEach(o=>load[o.id]=0);
+ for(let o of offs){if(!n)break;load[o.id]=1;n--}
+ for(let o of offs){let add=Math.min(n,BUILD[o.type].cap-load[o.id]);load[o.id]+=add;n-=add}return load}
+const slots=()=>Object.values(officeLoad()).filter(v=>v>0).length;
+const ownedCount=()=>stocks.filter(s=>s.shares).length;
+const desks=()=>buildings.filter(b=>BUILD[b.type].kind==='office').reduce((a,b)=>a+BUILD[b.type].cap,0);
+const freeIn=b=>BUILD[b.type].cap-staff.filter(e=>e.house===b.id).length-specials.filter(k=>specHouse[k]===b.id).length;
+const freeResidents=()=>buildings.filter(b=>BUILD[b.type].kind==='house').reduce((a,b)=>a+freeIn(b),0);
+const teamBonus=()=>staff.reduce((a,w)=>a+potOf(w),0);
+const salary=()=>staff.reduce((a,w)=>a+payOf(w),0)+specials.reduce((a,k)=>a+SPECIALS[k].pay,0);
+// Mitarbeiter verdienen nur Geld, wenn du mindestens eine Aktie besitzt (Gehalt kostet trotzdem)
+const staffEarn=()=>stocks.some(s=>s.shares)?staff.reduce((a,w)=>a+earnOf(w),0):0;
+const effPot=s=>s.shares?s.potential+teamBonus():s.potential; // Team-Bonus darf über 100 % gehen
+function fireWorst(reason){if(!staff.length)return;let i=staff.reduce((b,w,j)=>upsOf(w)<upsOf(staff[b])?j:b,0);staff.splice(i,1);if(reason)addNews('😢 Ein Mitarbeiter hat gekündigt – '+reason,'bad')}
+
+let toastTimer;
+function toast(t){$('toast').textContent=t;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),1900)}
+function addNews(t,kind=''){feedItems.unshift({t,day,kind});feedItems=feedItems.slice(0,15);renderFeed()}
+
+function renderSlots(){
+ let s=slots(),o=ownedCount(),el=$('slots');
+ el.textContent='📦 '+o+' / '+s+' Plätze';el.className='slots'+(o>s?' over':o>=s?' full':'');
+ $('tSlots').textContent=o+' / '+s;$('tStaffed').textContent=s+' / '+offices().length;
+}
+function renderStats(){
+ let value=depotValue(),total=cash+value-debt(),profit=total-START;
+ $('cash').textContent=euro(cash);$('portfolio').textContent=euro(value);$('total').textContent=euro(total);
+ let mm=moneyMult(),net=((incomePerSec()+staffEarn())*mm-salary())*PAY_EVERY;
+ $('income').textContent=(net>=0?'+':'')+euro(net);
+ $('incBox').title='Alle 2,5 Sekunden Zahltag · Geld-Multiplikator ×'+(+mm.toFixed(2));$('incBox').style.background=net<0?'var(--red)':'';
+ $('profit').textContent=(profit>0?'+':'')+euro(profit);$('profit').className=profit>=0?'pos':'neg';
+ $('day').textContent='Tag '+day;
+ if(D.manualDay){$('next').disabled=false;$('next').textContent='☀️ Nächster Tag';$('next').title='Börsentag weiterschalten'}
+ else{$('next').disabled=true;$('next').textContent='⏳ '+mmss(dayTimer);$('next').title='Der Börsentag läuft automatisch weiter – noch '+mmss(dayTimer)+' Minuten'}
+}
+const devTxt=s=>(s.dev>=0?'▲ ':'▼ ')+Math.abs(s.dev*100).toFixed(1)+'%';
+const devCls=s=>s.dev>=0?'pos':'neg';
+function setLivePrice(s){let d=s.dev<0?s.dev*D.down:s.dev*D.up;d=Math.max(-D.swing,Math.min(D.swing,d));s.price=+(s.fair*(1+d)).toFixed(2);s.history.push(s.price);if(s.history.length>60)s.history.shift()}
+// Jede Sekunde: Kurs wackelt zufällig hoch/runter, wird aber zum Normalpreis zurückgezogen und bleibt innerhalb ±15 %
+// Pech-Faktor: gute Zufalls-Ergebnisse werden kleiner, schlechte größer
+const unluck=v=>v>0?v*D.luck:v*(2-D.luck);
+function wobble(s){s.dev+=unluck((Math.random()-.5)*SPEED)-s.dev*SPEED;s.dev=Math.max(-D.swing,Math.min(D.swing,s.dev));setLivePrice(s)}
+function liveMarket(){
+ stocks.forEach(s=>{$('p-'+s.id).textContent=euro(s.price);let c=$('c-'+s.id);c.textContent=devTxt(s);c.className='change '+devCls(s);
+  if(s.shares)$('inc-'+s.id).innerHTML=incHtml(s)});
+}
+// Duo-Modus: Grundstück/Team bleiben pro Spieler lokal, Geld & Aktien sind gemeinsam.
+// cashDelta ändert den gemeinsamen Kontostand lokal sofort (fürs Gefühl) und meldet es beim Gast an den Host weiter.
+function cashDelta(d){cash+=d;if(duo&&duo.role==='guest')duoSend({t:'cashDelta',delta:d})}
+// Finanzielle Reserve: bei Schwer/Hardcore darf ein Kauf dich nicht unter die Pleite-Grenze drücken
+function canAfford(c){return cash>=c&&(!D.loseAt||cash-c>=D.loseAt)}
+function missingFor(c){if(cash<c)return c-cash;return D.loseAt?Math.max(0,D.loseAt-(cash-c)):0}
+// Pleite-Grenze: bei Schwer/Hardcore ist das Spiel vorbei, wenn der Kontostand zu tief fällt
+function checkLose(){
+ if(!started||!D.loseAt||cash>=D.loseAt)return false;
+ gameOver();return true;
+}
+function gameOver(){
+ started=false;
+ $('goText').textContent='Dein Kontostand ist unter '+euro(D.loseAt)+' gefallen – auf '+D.e+' '+D.name+' bist du damit pleite.';
+ $('goStats').innerHTML=`<div class="sg"><span>📅 Tag erreicht</span><b>${day}</b></div>
+  <div class="sg"><span>📈 Höchstes Vermögen</span><b>${euro(st.peak)}</b></div>
+  <div class="sg"><span>🛒 Aktien gekauft</span><b>${st.buys}</b></div>
+  <div class="sg"><span>💎 Diamanten</span><b>${diamonds}</b></div>`;
+ $('gameOverScreen').classList.remove('hidden');
+ addNews('💀 Pleite gegangen bei Tag '+day+'.','bad');
+}
+$('goRetry').onclick=()=>{$('gameOverScreen').classList.add('hidden');showLobby()};
+function render(){
+ if(checkLose())return;
+ renderStats();
+ $('market').innerHTML=stocks.map(s=>{
+  return `<div class="stock ${s.id===selected?'selected':''}" data-id="${s.id}">
+   <div class="coin" style="background:${s.color}">${s.symbol}${s.shares?'<span class="chk">✓</span>':''}</div>
+   <div class="info"><b>${s.name}</b><small id="inc-${s.id}">${s.shares?incHtml(s):s.sector}</small></div>
+   <div class="right"><div class="price" id="p-${s.id}">${euro(s.price)}</div><div class="change ${devCls(s)}" id="c-${s.id}" title="gegenüber Normalpreis">${devTxt(s)}</div></div></div>`}).join('');
+ document.querySelectorAll('.stock').forEach(el=>el.onclick=()=>{selected=el.dataset.id;render()});
+ renderDetail();renderHoldings();renderFeed();renderStatPanel();renderLand();renderBank();renderDia();
+}
+const stars=n=>n<=4?'★'.repeat(n):'★'+n;
+function renderLand(){
+ let cells=[],load=officeLoad();
+ for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+  let b=buildings.find(b=>b.x===x&&b.y===y);
+  if(b){let t=BUILD[b.type],occ=t.kind==='house'?(t.cap-freeIn(b))+'/'+t.cap:(load[b.id]||0)+'/'+t.cap;
+   let cls=['tile','b',selB===b.id?'sel':'',lastUp===b.id?'up':'',tool&&((tool===b.type&&t.next)||canReplace(b,tool))?'same':''].join(' ');
+   let tip=tool&&canReplace(b,tool)?' – für '+euro(replacePrice(b,tool))+' zu '+BUILD[tool].name+' umbauen':(t.next?' – noch eins drauf für Upgrade':'');
+   cells.push(`<div class="${cls}" draggable="true" style="background:${t.bg}" data-x="${x}" data-y="${y}" title="${t.name}${tip}"><span class="tier">${stars(t.tier)}</span>${t.e}${occ?'<span class="occ">'+occ+'</span>':''}</div>`)}
+  else cells.push(`<div class="tile ${(x+y)%2?'alt':''}" data-x="${x}" data-y="${y}"></div>`);
+ }
+ lastUp=null;
+ let map=$('map');map.innerHTML=cells.join('');
+ map.classList.toggle('placing',!!tool);if(tool)map.style.setProperty('--ghost','"'+BUILD[tool].e+'"');
+ map.querySelectorAll('.tile').forEach(el=>{
+  let x=+el.dataset.x,y=+el.dataset.y;
+  el.onclick=()=>tileClick(x,y);
+  el.ondragstart=e=>{let b=buildings.find(b=>b.x===x&&b.y===y);if(!b)return e.preventDefault();dragId=b.id;e.dataTransfer.setData('text/plain',b.id);el.classList.add('dragging')};
+  el.ondragend=()=>{dragId=null;el.classList.remove('dragging');map.querySelectorAll('.dropok').forEach(t=>t.classList.remove('dropok'))};
+  el.ondragover=e=>{if(dragId===null)return;let src=buildings.find(b=>b.id===dragId),t=buildings.find(b=>b.x===x&&b.y===y);
+   if(!t||(t!==src&&t.type===src.type&&BUILD[t.type].next)){e.preventDefault();el.classList.add('dropok')}};
+  el.ondragleave=()=>el.classList.remove('dropok');
+  el.ondrop=e=>{e.preventDefault();dropOn(x,y)};
+ });
+ const toolHtml=kind=>Object.entries(BUILD).filter(([,t])=>t.kind===kind).map(([k,t])=>{
+  let info=kind==='office'?(t.cap===1?'1 Platz':t.cap+' Plätze'):bedsText(t.cap);
+  if(t.mergeOnly)return `<button class="tool locked" disabled title="Nur durch Upgrade erreichbar"><span class="e">${t.e}</span>${t.name}<br><span class="c">🔀 nur Upgrade</span><br><small>${info}</small></button>`;
+  return `<button class="tool ${tool===k?'active':''} ${!canAfford(bCost(k))?'poor':''}" data-t="${k}"><span class="e">${t.e}</span>${t.name}<br><span class="c">${euro(bCost(k))}</span><br><small>${info}</small></button>`}).join('');
+ $('toolsOffice').innerHTML=toolHtml('office');$('toolsHouse').innerHTML=toolHtml('house');
+ document.querySelectorAll('.tool[data-t]').forEach(el=>el.onclick=()=>{tool=tool===el.dataset.t?null:el.dataset.t;selB=null;renderLand()});
+ renderTeam();renderBInfo();
+}
+function renderTeam(){
+ renderSlots();
+ let freeD=desks()-staff.length-specials.length,beds=freeResidents();
+ $('tDesks').textContent=staff.length+' / '+desks();$('tFree').textContent=beds;
+ $('tBonus').textContent='+'+Math.round(teamBonus()*10)/10;
+ let tn=(staffEarn()*moneyMult()-salary())*PAY_EVERY;$('tNet').textContent=(tn>=0?'+':'')+euro(tn);
+ $('tNet').className=tn>=0?'pos':'neg';
+ $('tNet').title='Verdienen '+euro(staffEarn()*PAY_EVERY)+' pro Zahltag, Gehälter '+euro(salary()*PAY_EVERY);
+ $('teamWarn').style.display=staff.length&&!ownedCount()?'block':'none';
+ $('team').innerHTML=staff.length?staff.map(w=>`<span title="Verdient ${euro(earnOf(w)*PAY_EVERY)}/Zahltag, Gehalt ${euro(payOf(w)*PAY_EVERY)}/Zahltag, +${potOf(w)} Potenzial">👷</span>`).join(''):'<span class="empty" style="font-size:12px">Noch niemand eingestellt.</span>';
+ $('freeDesks').textContent=!desks()?'· baue ein Büro!':freeD<=0?'· ⚠️ alle Arbeitsplätze belegt – baue oder verbessere ein Büro!':!beds?'· ⚠️ kein freies Bett – baue ein Haus!':'· '+freeD+' Plätze, '+bedsText(beds)+' frei';
+
+ // Bewerber-Box: mehrere Kandidaten zur Auswahl
+ let nextRoll=Math.max(1,HIRE_ROLL-rollTimer);
+ let rows=applicants.map((kind,i)=>{
+   let k=KINDS[kind],c=hireCostOf(kind);
+   let block=freeD<=0?'🏢 Büro voll':beds<=0?'🛏️ kein Bett':!canAfford(c)?(cash<c?'💸 '+euro(c-cash)+' fehlen':'🔒 Reserve: '+euro(missingFor(c))+' fehlen'):null;
+   return `<div class="appbox"><span style="font-size:20px">${k.e}</span><b>${k.name}<br><span class="muted">${k.info}</span><br><span class="${block?'neg':'muted'}">${block||'Kostet '+euro(c)}</span></b><button class="btn green" data-hire="${i}" style="padding:6px 10px" ${block?'disabled':''}>Einstellen</button></div>`}).join('');
+ $('applicant').innerHTML=rows+(applicants.length<MAX_APPLICANTS?`<div class="appbox wait"><span style="font-size:20px">⏳</span><b>${applicants.length?'Noch jemand?':'Noch kein Bewerber'}<br><span class="muted">Chance ${Math.round(hireChance())} % · nächster Wurf in ${nextRoll} s</span></b></div>`:'');
+ document.querySelectorAll('[data-hire]').forEach(b=>b.onclick=()=>hireWorker(+b.dataset.hire));
+
+ // Mitarbeiter einzeln verbessern
+ $('workers').innerHTML=staff.length?staff.map((w,i)=>`<div class="worker">
+   <div class="wtop"><span class="wn">👷</span>
+    <span class="ws">Mitarbeiter ${i+1}<br><b class="pos">+${euro(earnOf(w)*PAY_EVERY)}</b> pro Zahltag · <b>+${potOf(w)}</b> Pot. · Gehalt ${euro(payOf(w)*PAY_EVERY)}</span>
+    <button class="mini red" data-firew="${i}" title="Mitarbeiter entlassen">−</button></div>
+   <div class="wups">${UPK.map(k=>{let u=UP[k],lv=w[k],max=lv>=u.max,pc=upCost(k,lv);
+     return `<button class="upb ${max?'max':''}" data-up="${k}" data-wi="${i}" title="${u.name}: ${u.info}${max?' – Maximum erreicht':' · Stufe '+lv+' → '+(lv+1)+' kostet '+euro(pc)}">
+      <span class="e">${u.e}</span>${u.name}<br>${'★'.repeat(lv)}${'·'.repeat(u.max-lv)}<br><span class="pr">${max?'MAX':euro(pc)}</span></button>`}).join('')}</div>
+  </div>`).join(''):'<div class="empty">Stell erst einen Bewerber ein, dann kannst du ihn verbessern.</div>';
+ renderSpecials();
+ document.querySelectorAll('[data-firew]').forEach(b=>b.onclick=()=>fireWorker(+b.dataset.firew));
+ document.querySelectorAll('[data-up]').forEach(b=>{let k=b.dataset.up,i=+b.dataset.wi,w=staff[i];
+  b.disabled=w[k]>=UP[k].max||!canAfford(upCost(k,w[k]));
+  b.onclick=()=>upgradeWorker(i,k)});
+}
+function hireWorker(i){
+ let kind=applicants[i];if(kind===undefined){toast('🙋 Dieser Bewerber ist nicht mehr da!');return}
+ if(staff.length+specials.length>=desks()){toast('Kein freier Arbeitsplatz – baue ein Büro!');return}
+ let b=bestHouse();if(!b){toast('Kein freies Bett – baue ein Haus!');return}
+ let c=hireCostOf(kind),k=KINDS[kind];
+ if(!canAfford(c)){toast(cash<c?'Einstellen kostet '+euro(c)+' – nicht genug Geld! 💸':'🔒 Reserve nötig – noch '+euro(missingFor(c))+' zum Einstellen!');return}
+ cashDelta(-c);staff.push({house:b.id,money:k.start.money,speed:k.start.speed,pot:k.start.pot});applicants.splice(i,1);
+ addNews(k.e+' '+k.name+' für '+euro(c)+' eingestellt – jetzt verbessern!','good');toast(k.e+' '+k.name+' eingestellt!');render();
+}
+function fireWorker(i){
+ if(!staff[i])return;staff.splice(i,1);
+ addNews('👋 Ein Mitarbeiter wurde entlassen.');render();
+}
+function upgradeWorker(i,k){
+ let w=staff[i],u=UP[k];if(!w)return;
+ if(w[k]>=u.max){toast(u.e+' '+u.name+' ist schon auf Maximum!');return}
+ let c=upCost(k,w[k]);
+ if(!canAfford(c)){toast(cash<c?u.name+' Stufe '+(w[k]+1)+' kostet '+euro(c)+' – es fehlen '+euro(c-cash)+'! 💸':'🔒 Reserve nötig – noch '+euro(missingFor(c))+' für '+u.name+'!');return}
+ cashDelta(-c);w[k]++;
+ addNews(u.e+' '+u.name+' auf Stufe '+w[k]+' verbessert ('+euro(c)+').','good');
+ toast(u.e+' '+u.name+' → Stufe '+w[k]+'!');render();
+}
+function renderSpecials(){
+ let freeD=desks()-staff.length-specials.length,beds=freeResidents();
+ $('specials').innerHTML=Object.entries(SPECIALS).map(([k,sp])=>{
+  let have=specials.includes(k),c=specCost(k);
+  let block=have?null:freeD<=0?'🏢 Büro voll':beds<=0?'🛏️ kein Bett':!canAfford(c)?(cash<c?'💸 '+euro(c-cash)+' fehlen':'🔒 Reserve: '+euro(missingFor(c))+' fehlen'):null;
+  return `<div class="diarow ${have?'have':''}" title="${sp.name}: ${sp.info}, Gehalt ${euro(sp.pay*PAY_EVERY)}/Zahltag">
+   <span class="de">${sp.e}</span>
+   <span class="dt"><b>${sp.name}</b><br><span class="${have?'pos':'muted'}">${have?'✓ im Team · '+sp.info:sp.info+' · Gehalt '+euro(sp.pay*PAY_EVERY)+'/Zahltag'}</span>
+   ${!have&&block?'<br><span class="neg">'+block+'</span>':''}</span>
+   ${have?'':`<button class="btn green" data-spec="${k}" style="padding:5px 9px;font-size:12px">${euro(c)}</button>`}</div>`}).join('');
+ document.querySelectorAll('[data-spec]').forEach(b=>{let k=b.dataset.spec;
+  b.disabled=freeD<=0||beds<=0||!canAfford(specCost(k));b.onclick=()=>hireSpecial(k)});
+}
+function renderDia(){
+ let c=rebirthCost(),chance=(diaMult()).toFixed(2);
+ $('diamonds').textContent=diamonds;
+ $('dia').innerHTML=`<div class="diabig"><span style="font-size:30px">💎</span><span class="n">${diamonds}</span>
+   <span class="t">Chance pro Zahltag: <b>${chance} %</b> auf 1 Diamant<br>Jeder Diamant gibt dauerhaft <b class="pos">+1 % Geld</b></span></div>
+  <div class="rbbox"><b>♻️ Rebirth ${rebirths>0?'· '+rebirths+'× gemacht':''}</b><br>
+   Geld-Multiplikator jetzt: <b class="pos">×${(+moneyMult().toFixed(2))}</b><br>
+   <span class="muted">Alles beginnt von vorn (Geld, Grundstück, Team, Aktien) – deine Diamanten und der Multiplikator bleiben.</span>
+   <button class="btn purple" id="rbBtn" style="width:100%;margin-top:6px;padding:7px">♻️ Rebirth für ${euro(c)} · dann ×${(+(moneyMult()*REBIRTH_MULT).toFixed(2))}</button></div>`;
+ $('rbBtn').disabled=cash<c;
+ if(cash<c)$('rbBtn').textContent='Noch '+euro(c-cash)+' bis zum Rebirth';
+ $('rbBtn').onclick=doRebirth;
+}
+function hireSpecial(k){
+ let sp=SPECIALS[k];
+ if(specials.includes(k)){toast(sp.name+' ist schon in deinem Team!');return}
+ if(staff.length+specials.length>=desks()){toast('Kein freier Arbeitsplatz – baue ein Büro!');return}
+ let b=bestHouse();if(!b){toast('Kein freies Bett – baue ein Haus!');return}
+ let c=specCost(k);
+ if(!canAfford(c)){toast(cash<c?sp.name+' kostet '+euro(c)+' – es fehlen '+euro(c-cash)+'! 💸':'🔒 Reserve nötig – noch '+euro(missingFor(c))+' für '+sp.name+'!');return}
+ cashDelta(-c);specials.push(k);specHouse[k]=b.id;
+ addNews(sp.e+' '+sp.name+' für '+euro(c)+' eingestellt – '+sp.info+'!','good');toast(sp.e+' '+sp.name+' eingestellt!');render();
+}
+function doRebirth(){
+ let c=rebirthCost();
+ if(cash<c){toast('Rebirth kostet '+euro(c)+'! 💸');return}
+ if(!confirm('♻️ Rebirth für '+euro(c)+'?\n\nDu verlierst: Geld, Grundstück, Team und alle Aktien.\nDu behältst: '+diamonds+' Diamanten und bekommst dauerhaft ×'+(+(moneyMult()*REBIRTH_MULT).toFixed(2))+' Geld.'))return;
+ rebirths++;
+ stocks=newStocks();cash=START;day=1;selected='nova';st=newStats();({buildings,staff}=newLand());
+ specials=[];specHouse={};tool=null;selB=null;nextBid=2;loan=null;bankBlock=0;lastBankMode=null;credit=0;rollTimer=0;applicants=[];dayTimer=DAY_TIME;rerollHires();
+ addNews('♻️ Rebirth Nr. '+rebirths+'! Alles auf Anfang – dafür jetzt ×'+(+moneyMult().toFixed(2))+' Geld.','good');
+ toast('♻️ Rebirth! Jetzt ×'+(+moneyMult().toFixed(2))+' Geld');render();
+}
+function renderBInfo(){
+ let b=buildings.find(b=>b.id===selB),el=$('bInfo');
+ if(!b){el.innerHTML=tool?`<b>${BUILD[tool].e} ${BUILD[tool].name}</b> ausgewählt – klicke auf eine freie Wiese.<br><small>Auf ein gleiches Gebäude = ✨ Upgrade. Auf ein schlechteres Gebäude derselben Art = 🔨 Umbau (die Hälfte vom alten wird angerechnet). Nochmal auf das Gebäude im Menü klicken zum Abwählen.</small>`:'<b>💡 Tipp</b><br><small>Baue ein Büro für Arbeitsplätze und ein Haus für Bewohner – dann kannst du Mitarbeiter einstellen. Zwei gleiche Gebäude aufeinander ergeben die nächste Stufe!</small>';return}
+ let t=BUILD[b.type],used=t.kind==='house'?t.cap-freeIn(b):null;
+ let up=t.next?`✨ Noch ein ${t.name} drauf → <b>${BUILD[t.next].e} ${BUILD[t.next].name}</b>`:'👑 Höchste Stufe erreicht!';
+ el.innerHTML=`<span class="e">${t.e}</span><b>${t.name}</b> <span style="color:var(--yellow)">${stars(t.tier)}</span><br><small>${t.kind==='office'?(t.cap===1?'1 Arbeitsplatz':t.cap+' Arbeitsplätze'):used+' von '+bedsText(t.cap)+' belegt – jeder Mitarbeiter kann hier wohnen'}</small><div style="clear:both;font-size:12px;margin:6px 0">${up}</div><button class="btn red" id="demolish" style="width:100%;padding:6px">🧨 Abreißen · +${euro(b.value/2)}</button>`;
+ $('demolish').onclick=()=>demolish(b.id);
+}
+function bestHouse(){return buildings.find(b=>BUILD[b.type].kind==='house'&&freeIn(b)>0)}
+// Zwei gleiche Gebäude verschmelzen → nächste Stufe. Mitarbeiter aus dem Haus steigen mit auf.
+function merge(tgt,src,paid){
+ let t=BUILD[tgt.type];
+ if(!t.next){toast('👑 '+t.name+' ist schon die höchste Stufe!');return false}
+ let n=BUILD[t.next];
+ tgt.type=t.next;tgt.value+=src?src.value:paid;
+ if(src){staff.forEach(e=>{if(e.house===src.id)e.house=tgt.id});buildings=buildings.filter(b=>b.id!==src.id)}
+ lastUp=tgt.id;selB=tgt.id;
+ addNews('✨ Upgrade! '+t.e+' + '+t.e+' = '+n.e+' '+n.name,'good');toast('✨ Upgrade: '+n.e+' '+n.name+'!');
+ return true;
+}
+const canReplace=(b,type)=>BUILD[type].kind===BUILD[b.type].kind&&BUILD[type].tier>BUILD[b.type].tier&&!BUILD[type].mergeOnly;
+const replacePrice=(b,type)=>Math.max(0,bCost(type)-b.value/2);
+function replaceBuilding(b,type,paid){
+ let ot=BUILD[b.type],nt=BUILD[type];
+ b.type=type;b.value=bCost(type);
+ lastUp=b.id;selB=b.id;
+ addNews('🔨 '+ot.e+' '+ot.name+' → '+nt.e+' '+nt.name+' umgebaut (−'+euro(paid)+')','good');toast('🔨 Umgebaut: '+nt.e+' '+nt.name+'!');
+}
+function tileClick(x,y){
+ let b=buildings.find(b=>b.x===x&&b.y===y);
+ if(b&&tool&&b.type===tool&&BUILD[b.type].next){
+  let t=BUILD[tool],c=bCost(tool);if(!canAfford(c)){toast(cash<c?'Nicht genug Geld für '+t.name+'! 💸':'🔒 Reserve nötig – noch '+euro(missingFor(c))+' für '+t.name+'!');return}
+  cashDelta(-c);merge(b,null,c);if(cash<c)tool=null;render();return;
+ }
+ // Besseres Gebäude derselben Art auf ein schlechteres setzen = direkt umbauen (alte Hälfte wird angerechnet)
+ if(b&&tool&&canReplace(b,tool)){
+  let nt=BUILD[tool],price=replacePrice(b,tool);
+  if(!canAfford(price)){toast(cash<price?'Umbau zu '+nt.name+' kostet '+euro(price)+' – nicht genug Geld! 💸':'🔒 Reserve nötig – noch '+euro(missingFor(price))+' für den Umbau zu '+nt.name+'!');return}
+  cashDelta(-price);replaceBuilding(b,tool,price);if(cash<bCost(tool))tool=null;render();return;
+ }
+ if(b&&tool&&BUILD[tool].kind===BUILD[b.type].kind&&BUILD[tool].tier<BUILD[b.type].tier){toast(BUILD[b.type].name+' ist schon besser als '+BUILD[tool].name+'!');return}
+ if(b){selB=selB===b.id?null:b.id;tool=null;renderLand();return}
+ if(!tool){selB=null;renderLand();return}
+ let t=BUILD[tool];
+ let c=bCost(tool);
+ if(!canAfford(c)){toast(cash<c?'Nicht genug Geld für '+t.name+'! 💸':'🔒 Reserve nötig – noch '+euro(missingFor(c))+' für '+t.name+'!');return}
+ cashDelta(-c);buildings.push({id:nextBid++,type:tool,x,y,value:c});addNews('🏗️ '+t.name+' gebaut!','trade');toast(t.e+' '+t.name+' gebaut!');
+ if(cash<c)tool=null;
+ render();
+}
+function dropOn(x,y){
+ let src=buildings.find(b=>b.id===dragId),tgt=buildings.find(b=>b.x===x&&b.y===y);dragId=null;
+ if(!src||tgt===src)return;
+ if(!tgt){src.x=x;src.y=y;selB=src.id}
+ else if(tgt.type===src.type){if(!merge(tgt,src))return}
+ else{toast('Nur zwei gleiche Gebäude kann man upgraden!');return}
+ render();
+}
+function demolish(id){
+ let b=buildings.find(b=>b.id===id),t=BUILD[b.type];
+ buildings=buildings.filter(x=>x.id!==id);cashDelta(b.value/2);selB=null;
+ let gone=staff.filter(e=>e.house===id).length;staff=staff.filter(e=>e.house!==id);
+ while(staff.length>desks()){fireWorst();gone++}
+ addNews('🧨 '+t.name+' abgerissen'+(gone?' – '+gone+' Mitarbeiter weg':'')+'.','bad');render();
+}
+function setView(v){
+ view=v;$('viewMarket').classList.toggle('hidden',v!=='market');$('viewLand').classList.toggle('hidden',v!=='land');
+ $('tabMarket').classList.toggle('active',v==='market');$('tabLand').classList.toggle('active',v==='land');
+ if(v==='market'){tool=null}render();
+}
+
+function renderDetail(){
+ let s=stock();
+ $('dCoin').textContent=s.symbol;$('dCoin').style.background=s.color;
+ $('detailName').textContent=s.name;$('detailSector').textContent=s.sector;
+ $('owned').textContent=s.shares?'✓ Im Depot':'Nicht im Depot';$('owned').className='pill'+(s.shares?' own':'');
+ $('detailPrice').textContent=euro(s.price);$('detailFair').innerHTML='Normal: '+euro(s.fair)+' · <span class="'+devCls(s)+'">'+devTxt(s)+'</span>';{let v=incOf(s)*PAY_EVERY;$('detailIncome').textContent=(v<0?'📉 ':'+')+euro(v);$('detailIncome').className=v<0?'neg':'pos'}
+ $('interest').textContent=Math.round(s.interest)+'%';$('interestBar').style.width=s.interest+'%';
+ let ep=effPot(s),tb=ep-s.potential;
+ $('potential').textContent=Math.round(ep)+'%';$('potentialBar').style.width=Math.min(100,ep)+'%';
+ $('teamHint').textContent=tb>0?'👷 Dein Team gibt +'+Math.round(tb)+' Potenzial':(staff.length&&!s.shares?'👷 Kauf die Aktie, damit dein Team hilft':'');
+ renderTrade();drawLine($('chart'),s.history.slice(-60),s.color);
+}
+function renderTrade(){
+ let s=stock(),b=$('buy');renderSlots();
+ if(s.shares){b.disabled=true;b.textContent='✓ Gekauft'}
+ else if(!slots()){b.disabled=true;b.textContent='👷 Erst Mitarbeiter einstellen'}
+ else if(ownedCount()>=slots()){b.disabled=true;b.textContent='🏢 Kein Platz frei'}
+ else if(!canAfford(s.price)){b.disabled=true;b.textContent=(cash<s.price?'Noch ':'🔒 Reserve: noch ')+euro(missingFor(s.price))}
+ else{b.disabled=false;b.textContent='＋ Kaufen · '+euro(s.price)}
+ $('sell').disabled=!s.shares;$('sell').textContent=s.shares?'− Verkaufen · '+euro(s.price):'− Verkaufen';
+ if(D.ads)document.querySelectorAll('[data-ad]').forEach(b=>b.disabled=!canAfford(adCost(b.dataset.ad)));
+ $('adInfo').textContent=s.ad?'· Langzeit-Werbung: '+(+s.ad.toFixed(1))+(s.ad===1?' Punkt':' Punkte'):'';
+}
+function renderHoldings(){
+ let list=stocks.filter(s=>s.shares>0);
+ $('holdings').innerHTML=list.length?list.map(s=>`<div class="holding"><div class="coin" style="background:${s.color}">${s.symbol}</div><div class="info"><b>${s.name}</b><small>${incHtml(s)}</small></div><b>${euro(s.price)}</b></div>`).join(''):'<div class="empty">Noch keine Aktien – kauf deine erste! 🚀</div>';
+}
+function renderFeed(){
+ $('feed').innerHTML=feedItems.length?feedItems.map(n=>`<div class="news ${n.kind}"><span>${n.t}</span><small>Tag ${n.day}</small></div>`).join(''):'<div class="empty">Noch keine Meldungen.</div>';
+}
+function renderStatPanel(){
+ let owned=stocks.filter(s=>s.shares),best=owned.sort((a,b)=>b.price-a.price)[0];
+ $('stEarned').textContent=euro(st.earned);$('stPeak').textContent=euro(st.peak);
+ $('stOwned').textContent=owned.length+' / '+slots();$('stTrades').textContent=st.buys+' / '+st.sells;
+ $('stTime').textContent=Math.floor(st.seconds/60)+':'+String(st.seconds%60).padStart(2,'0');
+ $('stBest').textContent=best?best.name:'—';
+ $('stStaff').textContent=staff.length;$('stTeam').textContent=euro(st.team);
+ drawLine($('wealthChart'),st.wealth,'#9d4edd');
+}
+function drawLine(c,vals,color){
+ let r=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+ c.width=Math.max(1,r.width*dpr);c.height=Math.max(1,r.height*dpr);
+ let x=c.getContext('2d');if(!x)return;x.scale(dpr,dpr);
+ let w=r.width,h=r.height;
+ x.strokeStyle='#e4e7f7';x.lineWidth=1;
+ for(let i=1;i<4;i++){let y=h*i/4;x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke()}
+ if(vals.length<2)return;
+ let lo=Math.min(...vals),hi=Math.max(...vals),pad=(hi-lo)*.1||hi*.05||1;lo-=pad;hi+=pad;
+ let pts=vals.map((v,i)=>({x:6+i*(w-12)/(vals.length-1),y:h-6-(v-lo)/(hi-lo)*(h-12)}));
+ x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p.x,p.y):x.moveTo(p.x,p.y));
+ x.strokeStyle=color;x.lineWidth=3;x.lineJoin='round';x.stroke();
+ x.lineTo(pts.at(-1).x,h);x.lineTo(pts[0].x,h);x.closePath();
+ let g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,color+'55');g.addColorStop(1,color+'00');x.fillStyle=g;x.fill();
+ let p=pts.at(-1);x.beginPath();x.arc(p.x,p.y,4,0,7);x.fillStyle=color;x.fill();
+}
+function bump(id){let e=$(id);e.classList.remove('bump');void e.offsetWidth;e.classList.add('bump')}
+function updateTools(){document.querySelectorAll('.tool[data-t]').forEach(el=>el.classList.toggle('poor',!canAfford(bCost(el.dataset.t))))}
+function floatText(t,neg){let f=document.createElement('span');f.className='float';if(neg)f.style.color='var(--red)';f.textContent=t;$('cashBox').appendChild(f);setTimeout(()=>f.remove(),900)}
+
+// Im Duo sind Aktien & Geld gemeinsam: der Host führt Käufe/Verkäufe/Werbung aus, der Gast schickt nur eine Anfrage.
+$('buy').onclick=()=>{let s=stock();if(s.shares){toast('Die hast du schon – pro Firma nur eine!');return}
+ if(ownedCount()>=slots()){toast('Kein Aktien-Platz frei – du brauchst ein Büro mit Mitarbeiter! 🏢👷');return}
+ if(!canAfford(s.price)){toast(cash<s.price?'Nicht genug Geld! 💸':'🔒 Du brauchst eine Reserve von '+euro(D.loseAt)+' – noch '+euro(missingFor(s.price))+' nötig!');return}
+ if(duo&&duo.role==='guest'){duoSend({t:'buy',id:s.id});return}
+ execBuy(s.id)};
+function execBuy(id){
+ let s=stocks.find(x=>x.id===id);if(!s||s.shares)return;
+ if(ownedCount()>=slots())return;
+ if(!canAfford(s.price))return;
+ cash-=s.price;s.shares=1;st.buys++;addNews('🛒 '+s.name+' gekauft! +'+euro(incOf(s)*PAY_EVERY)+'/Zahltag','trade');toast('✓ '+s.name+' gekauft!');bump('incBox');render();
+ if(duo&&duo.role==='host')broadcastState();
+}
+$('sell').onclick=()=>{let s=stock();if(!s.shares){toast('Du besitzt diese Aktie nicht.');return}
+ if(duo&&duo.role==='guest'){duoSend({t:'sell',id:s.id});return}
+ execSell(s.id)};
+function execSell(id){
+ let s=stocks.find(x=>x.id===id);if(!s||!s.shares)return;
+ cash+=s.price;s.shares=0;st.sells++;addNews('💰 '+s.name+' für '+euro(s.price)+' verkauft.','trade');toast(s.name+' verkauft.');render();
+ if(duo&&duo.role==='host')broadcastState();
+}
+// Werbe-Knöpfe einmal bauen (nicht jede Sekunde neu, damit Klicks nicht verloren gehen)
+function buildAdButtons(){
+ if(!D.ads){$('ads').innerHTML='<p class="bsmall" style="margin:0;grid-column:1/-1">💀 <b>Hardcore:</b> Werbung gibt es hier nicht – die Kurse musst du ohne Hilfe schaffen.</p>';return}
+ $('ads').innerHTML=Object.entries(ADS).map(([k,a])=>`<button class="adbtn" data-ad="${k}" title="${a.name}: ${a.info}${a.hype?' · +'+a.hype+' Interesse':''}${a.pot?' · +'+a.pot+' Potenzial':''}"><span class="e">${a.e}</span>${a.name}<br><span class="c">${euro(adCost(k))}</span></button>`).join('');
+ document.querySelectorAll('[data-ad]').forEach(b=>b.onclick=()=>runAd(b.dataset.ad));
+}
+buildAdButtons();
+function runAd(k){
+ if(!D.ads){toast('💀 Im Hardcore-Modus gibt es keine Werbung!');return}
+ let s=stock(),a=ADS[k],c=adCost(k);if(!canAfford(c)){toast(cash<c?'Du brauchst '+euro(c)+' für '+a.name+'.':'🔒 Reserve von '+euro(D.loseAt)+' nötig – noch '+euro(missingFor(c))+' fehlen für '+a.name+'.');return}
+ if(duo&&duo.role==='guest'){duoSend({t:'ad',k,id:s.id});return}
+ execAd(k,s.id);
+}
+function execAd(k,id){
+ let s=stocks.find(x=>x.id===id);if(!s)return;
+ let a=ADS[k],c=adCost(k);if(!canAfford(c))return;
+ cash-=c;let hype=a.hype,viral=a.viral&&Math.random()<a.viral*D.luck;if(viral)hype+=15;
+ s.interest=Math.min(100,s.interest+hype);s.potential=Math.min(99,s.potential+a.pot);s.ad+=a.long;
+ s.hype=(s.hype||0)+hype;                                   // wirkt am nächsten Tag auf den Kurs
+ s.dev=Math.min(D.swing,s.dev+hype*.003);setLivePrice(s);  // kleiner Sofort-Effekt auf den Live-Kurs
+ addNews(viral?'🔥 '+s.name+' geht viral! +'+hype+' Interesse':a.e+' '+a.name+' für '+s.name+' – +'+hype+' Interesse'+(a.pot?', +'+a.pot+' Potenzial':''),'good');
+ toast(viral?'🔥 VIRAL! '+s.name+' ist überall!':a.e+' '+a.name+' gestartet!');render();
+ if(duo&&duo.role==='host')broadcastState();
+}
+function nextDay(){
+ day++;dayTimer=DAY_TIME;
+ stocks.forEach(s=>{
+  let old=s.interest;
+  s.interest=Math.max(5,Math.min(100,s.interest+unluck(Math.random()*10-5)+(s.ad?Math.min(2,s.ad*.22):0)));
+  if(s.ad>0&&day%2===0)s.potential=Math.min(99,s.potential+Math.min(.35,s.ad*.035));
+  // Team-Bonus wirkt nur auf eigene Aktien und lässt deren Kurs schneller steigen
+  let demand=(s.interest-old+(s.hype||0))*.42;s.hype=0;let quality=(s.potential-s.base)*.012+Math.min(1.5,(effPot(s)-s.potential)*.03),noise=unluck((Math.random()-.5)*5.2*D.vol);
+  let move=Math.max(-10*D.vol,Math.min(10*D.vol,demand+quality+noise));move=(move<0?move*D.down:move*D.up)+D.drift;move=Math.max(-18,Math.min(18,move));
+  s.fair=Math.max(2,s.fair*(1+move/100));setLivePrice(s);
+  if(Math.random()<.16){let up=Math.random()<.5*D.luck;s.interest=Math.max(5,Math.min(100,s.interest+(up?1:-1)*(5+Math.random()*10)));
+   addNews(up?'🚀 Gute Nachrichten für '+s.name+'!':'⚠️ Schlechte Stimmung bei '+s.name+'.',up?'good':'bad')}
+ });
+ // Shop-Restock: zum neuen Börsentag meldet sich garantiert ein neuer Bewerber
+ if(applicants.length<MAX_APPLICANTS)applicants.push(rollKind());
+ addNews('☀️ Neuer Börsentag – die Kurse haben sich bewegt.');
+ addNews('🛒 Shop aufgefüllt – ein neuer Bewerber ist da!','good');
+ render();
+}
+$('next').onclick=()=>{
+ if(!D.manualDay){toast('⏳ Hier läuft der Börsentag von allein – noch '+mmss(dayTimer)+'!');return}
+ nextDay();
+};
+$('tabMarket').onclick=()=>setView('market');$('tabLand').onclick=()=>setView('land');
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&(tool||selB)){tool=null;selB=null;renderLand()}});
+// ================= DUO-MODUS =================
+// Technischer Hinweis (bewusste Grenze): Das hier ist eine einzelne HTML-Datei ganz ohne eigenen Server.
+// "Gruppe erstellen/beitreten" funktioniert deshalb nur zwischen zwei Tabs/Fenstern DESSELBEN Browsers auf
+// demselben Gerät (per BroadcastChannel) – kein echtes Internet-Multiplayer mit einem anderen Gerät.
+// Aktien, Kontostand, Tag/Krisen & Diamanten sind gemeinsam (der Host simuliert sie, der Gast bekommt sie zugeschickt).
+// Grundstück, Team, Bewerber & Spezialisten bleiben pro Spieler lokal – ihr seht euch nur gegenseitig "über die Mauer".
+// Bank/Kredite und Rebirth sind im Duo-Modus ausgeschaltet, weil sie sich nicht sauber auf zwei Spieler aufteilen lassen.
+let duo=null,createMode='solo';
+const ROOM_TTL=10*60*1000;
+function loadRooms(){let r=null;try{r=JSON.parse(localStorage.getItem('bb_rooms'))}catch(e){}return r||{}}
+function saveRooms(r){try{localStorage.setItem('bb_rooms',JSON.stringify(r))}catch(e){}}
+function registerRoom(code,diffK){let r=loadRooms();r[code]={diff:diffK,ts:Date.now()};saveRooms(r)}
+function unregisterRoom(code){let r=loadRooms();delete r[code];saveRooms(r)}
+function listOpenRooms(){let r=loadRooms(),now=Date.now(),out={};for(let c in r)if(now-r[c].ts<ROOM_TTL)out[c]=r[c];saveRooms(out);return out}
+function genCode(){let letters='ABCDEFGHJKLMNPQRSTUVWXYZ',c='';for(let i=0;i<4;i++)c+=letters[Math.floor(Math.random()*letters.length)];return c}
+function duoSend(msg){if(duo)duo.chan.postMessage(Object.assign({from:duo.role},msg))}
+function leaveDuo(){if(duo){if(duo.role==='host')unregisterRoom(duo.code);try{duo.chan.close()}catch(e){}duo=null}}
+function updateDuoLandUI(){
+ let on=!!duo;
+ $('landWallDiv').classList.toggle('hidden',!on);document.querySelector('.landgrid').classList.toggle('duo',on);$('otherLandSide').classList.toggle('hidden',!on);$('myLandTitle').classList.toggle('hidden',!on);
+ let h2=document.querySelector('#viewLand h2');
+ if(h2&&h2.firstChild)h2.firstChild.textContent=on?'🌳 Geteiltes Spiel ':'🌳 Dein Grundstück ';
+}
+function renderOtherLand(){
+ if(!duo)return;
+ let ob=duo.partnerLand.buildings||[],ost=duo.partnerLand.staff||[];
+ let cells=[];
+ for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+  let b=ob.find(b=>b.x===x&&b.y===y);
+  if(b){let t=BUILD[b.type];cells.push(`<div class="tile b" style="background:${t.bg}"><span class="tier">${stars(t.tier)}</span>${t.e}</div>`)}
+  else cells.push(`<div class="tile ${(x+y)%2?'alt':''}"></div>`);
+ }
+ $('mapOther').innerHTML=cells.join('');
+ $('otherLandTitle').innerHTML='<span class="duoDot on"></span>'+(duo.role==='host'?'Mitspieler':'Host')+'-Grundstück · '+ost.length+' 👷';
+}
+function broadcastState(){if(duo&&duo.role==='host')duoSend({t:'state',stocks,cash,day,dayTimer,rebirths,diamonds:meta.diamonds})}
+function adoptState(m){stocks=m.stocks;cash=m.cash;day=m.day;dayTimer=m.dayTimer;rebirths=m.rebirths;if(m.diamonds!==meta.diamonds){meta.diamonds=m.diamonds;saveMeta()}render()}
+function handleDuoMsg(m){
+ if(!duo||m.from===duo.role)return;
+ if(duo.role==='host'){
+  switch(m.t){
+   case 'join':
+    duo.guestConnected=true;$('duoDotGuest')?.classList.add('on');$('duoStartBtn')?.classList.remove('hidden');
+    duoSend({t:'joined_ack'});break;
+   case 'cashDelta':cash+=m.delta;broadcastState();break;
+   case 'buy':execBuy(m.id);break;
+   case 'sell':execSell(m.id);break;
+   case 'ad':execAd(m.k,m.id);break;
+   case 'land':duo.partnerLand={buildings:m.buildings,staff:m.staff};if(view==='land')renderOtherLand();break;
+  }
+ }else{
+  switch(m.t){
+   case 'joined_ack':duo.guestConnected=true;break;
+   case 'started':adoptStartedState(m);break;
+   case 'state':adoptState(m);break;
+   case 'land':duo.partnerLand={buildings:m.buildings,staff:m.staff};if(view==='land')renderOtherLand();break;
+  }
+ }
+}
+function createDuoRoom(diffKey){
+ let code=genCode();
+ duo={code,role:'host',chan:new BroadcastChannel('bb-room-'+code),guestConnected:false,partnerLand:{buildings:[],staff:[]},pendingDiff:diffKey};
+ duo.chan.onmessage=e=>handleDuoMsg(e.data);
+ registerRoom(code,diffKey);
+ $('startScreen').classList.add('hidden');
+ $('duoWaitTitle').textContent='Gruppe erstellt!';$('duoWaitText').textContent='Gib diesen Code an deinen Mitspieler weiter – er öffnet die Datei im selben Browser und tritt bei:';
+ $('duoCodeBox').textContent=code;$('duoDotHost').classList.add('on');$('duoDotGuest').classList.remove('on');$('duoStartBtn').classList.add('hidden');
+ $('duoWaitScreen').classList.remove('hidden');
+}
+function joinDuoRoom(code){
+ code=(code||'').toUpperCase().trim();
+ if(code.length!==4){toast('Bitte einen 4-stelligen Code eingeben!');return}
+ leaveDuo();
+ duo={code,role:'guest',chan:new BroadcastChannel('bb-room-'+code),guestConnected:true,partnerLand:{buildings:[],staff:[]}};
+ duo.chan.onmessage=e=>handleDuoMsg(e.data);
+ duoSend({t:'join'});
+ $('joinScreen').classList.add('hidden');
+ $('duoWaitTitle').textContent='Beigetreten!';$('duoWaitText').textContent='Warte, bis der Host das Spiel startet…';
+ $('duoCodeBox').textContent=code;$('duoDotHost').classList.remove('on');$('duoDotGuest').classList.add('on');$('duoStartBtn').classList.add('hidden');
+ $('duoWaitScreen').classList.remove('hidden');
+}
+function adoptStartedState(m){
+ diffKey=m.diffKey;D=DIFF[diffKey];
+ stocks=m.stocks;cash=m.cash;day=m.day;dayTimer=m.dayTimer;rebirths=m.rebirths;
+ if(m.diamonds!==meta.diamonds){meta.diamonds=m.diamonds;saveMeta()}
+ selected='nova';feedItems=[];st=newStats();({buildings,staff}=newLand());tool=null;selB=null;nextBid=2;loan=null;bankBlock=0;lastBankMode=null;credit=0;rollTimer=0;applicants=[];specials=[];specHouse={};
+ if(meta.freeTent)buildings.push({id:nextBid++,type:'tent',x:2,y:0,value:0});
+ rerollHires();buildAdButtons();
+ $('diffPill').textContent=D.e+' '+D.name;$('diffPill').style.background=D.color;
+ $('duoWaitScreen').classList.add('hidden');started=true;updateDuoLandUI();
+ addNews('🎮 Duo-Spiel auf '+D.e+' '+D.name+' – viel Erfolg zu zweit!');setView('market');toast(D.e+' '+D.name+' – los geht\'s zu zweit!');
+}
+$('duoStartBtn').onclick=()=>{
+ if(!duo||duo.role!=='host'||!duo.guestConnected)return;
+ unregisterRoom(duo.code);
+ newGame(duo.pendingDiff);
+ duoSend({t:'started',diffKey:duo.pendingDiff,stocks,cash,day,dayTimer,rebirths,diamonds:meta.diamonds});
+ $('duoWaitScreen').classList.add('hidden');
+};
+$('duoCancel').onclick=()=>{leaveDuo();$('duoWaitScreen').classList.add('hidden');showLobby()};
+
+// ================= LOBBY & SHOP =================
+function showLobby(){
+ leaveDuo();started=false;
+ ['startScreen','shopScreen','modeScreen','joinScreen','duoWaitScreen','gameOverScreen'].forEach(id=>$(id).classList.add('hidden'));
+ $('lobbyDia').textContent=meta.diamonds;
+ $('lobbyScreen').classList.remove('hidden');
+}
+function renderShop(){
+ $('shopDia').textContent=meta.diamonds;
+ $('buyFreeTent').disabled=meta.freeTent||meta.diamonds<FREE_TENT_COST;
+ $('buyFreeTent').textContent=meta.freeTent?'✓ Gekauft':FREE_TENT_COST+' 💎';
+ $('buyPack').disabled=meta.diamonds<PACK_COST;
+ $('bgGrid').innerHTML=Object.entries(BG_DESIGNS).map(([id,d])=>{
+  let owned=meta.cosmetics.includes(id);
+  return `<div class="bgCard ${meta.equippedBg===id?'equipped':''}" data-bg="${id}" style="background:${d.grad};${owned?'':'filter:grayscale(1) brightness(.55)'}">${owned?'':'<span class="lockdot">🔒</span>'}<span>${d.e} ${d.name}</span></div>`;
+ }).join('');
+ document.querySelectorAll('[data-bg]').forEach(el=>el.onclick=()=>{
+  let id=el.dataset.bg;
+  if(!meta.cosmetics.includes(id)){toast('🔒 Das Design hast du noch nicht – öffne ein Pack!');return}
+  meta.equippedBg=id;saveMeta();applyBg(id);renderShop();toast('🎨 Design ausgerüstet!');
+ });
+}
+$('buyFreeTent').onclick=()=>{
+ if(meta.freeTent||meta.diamonds<FREE_TENT_COST)return;
+ meta.diamonds-=FREE_TENT_COST;meta.freeTent=true;saveMeta();renderShop();toast('⛺ Gratis-Zelt für den nächsten Spielstart gesichert!');
+};
+$('buyPack').onclick=()=>{
+ if(meta.diamonds<PACK_COST){toast('Nicht genug Diamanten!');return}
+ meta.diamonds-=PACK_COST;
+ let pool=Object.keys(BG_DESIGNS),tot=pool.reduce((s,id)=>s+RARITY_W[BG_DESIGNS[id].rarity],0),r=Math.random()*tot,got=pool[0];
+ for(let id of pool){let w=RARITY_W[BG_DESIGNS[id].rarity];if(r<w){got=id;break}r-=w}
+ let d=BG_DESIGNS[got],dup=meta.cosmetics.includes(got);
+ if(!dup)meta.cosmetics.push(got);else meta.diamonds+=8;
+ saveMeta();
+ let rn={common:'Häufig',rare:'Selten',epic:'Episch',legendary:'🌟 LEGENDÄR!'}[d.rarity];
+ $('packReveal').innerHTML=`<div class="bgCard" style="background:${d.grad};height:80px;margin-top:8px">${d.e} ${d.name}</div><p class="bsmall" style="text-align:center">${rn}${dup?' · Schon vorhanden (+8 💎 zurück)':''}</p>`;
+ renderShop();
+};
+$('lobbyShopBtn').onclick=()=>{renderShop();$('lobbyScreen').classList.add('hidden');$('shopScreen').classList.remove('hidden')};
+$('shopBack').onclick=()=>{$('shopScreen').classList.add('hidden');$('lobbyDia').textContent=meta.diamonds;$('lobbyScreen').classList.remove('hidden')};
+$('lobbyPlayBtn').onclick=()=>{$('lobbyScreen').classList.add('hidden');$('modeScreen').classList.remove('hidden')};
+$('modeBack').onclick=()=>{$('modeScreen').classList.add('hidden');showLobby()};
+$('modeCreate').onclick=()=>{$('modeScreen').classList.add('hidden');showStart()};
+$('modeJoin').onclick=()=>{$('modeScreen').classList.add('hidden');renderOpenRooms();$('joinScreen').classList.remove('hidden')};
+$('joinBack').onclick=()=>{$('joinScreen').classList.add('hidden');$('modeScreen').classList.remove('hidden')};
+$('joinGo').onclick=()=>joinDuoRoom($('joinCode').value);
+function renderOpenRooms(){
+ let rooms=listOpenRooms(),ids=Object.keys(rooms);
+ $('openRooms').innerHTML=ids.length?ids.map(c=>`<div class="roomRow" data-code="${c}"><span>🔑 <b>${c}</b></span><span>${DIFF[rooms[c].diff].e} ${DIFF[rooms[c].diff].name}</span></div>`).join(''):'<p class="bsmall">Keine offenen Gruppen gefunden – gib den Code manuell ein.</p>';
+ document.querySelectorAll('[data-code]').forEach(el=>el.onclick=()=>joinDuoRoom(el.dataset.code));
+}
+function renderModeToggle(){document.querySelectorAll('#soloDuoToggle button').forEach(b=>b.classList.toggle('active',b.dataset.m===createMode))}
+document.querySelectorAll('#soloDuoToggle button').forEach(b=>b.onclick=()=>{createMode=b.dataset.m;renderModeToggle()});
+$('startBack').onclick=()=>{$('startScreen').classList.add('hidden');showLobby()};
+
+function newGame(k){
+ diffKey=k;D=DIFF[k];
+ stocks=newStocks();cash=START;day=1;selected='nova';feedItems=[];st=newStats();({buildings,staff}=newLand());tool=null;selB=null;nextBid=2;loan=null;bankBlock=0;lastBankMode=null;credit=0;rollTimer=0;applicants=[];specials=[];specHouse={};rebirths=0;dayTimer=DAY_TIME;rerollHires();buildAdButtons();
+ if(meta.freeTent)buildings.push({id:nextBid++,type:'tent',x:2,y:0,value:0});
+ $('diffPill').textContent=D.e+' '+D.name;$('diffPill').style.background=D.color;
+ $('startScreen').classList.add('hidden');started=true;updateDuoLandUI();
+ addNews('🎮 Neues Spiel auf '+D.e+' '+D.name+' – viel Erfolg!');setView('market');toast(D.e+' '+D.name+' – los geht\'s!');
+}
+function showStart(){
+ duo=null;started=false;createMode='solo';renderModeToggle();
+ $('diffs').innerHTML=Object.entries(DIFF).map(([k,d])=>`<button class="diff" data-diff="${k}" style="--c:${d.color}"><span class="de">${d.e}</span><b>${d.name}</b><small>${d.desc}</small>
+  <span class="dtags"><span>${d.vol<1?'📊 ruhige Kurse':d.vol<1.7?'📊 starke Schwankungen':'📊 wilde Schwankungen'}</span><span>${d.crisis?'⚠️ Krisen':'✅ keine Krisen'}</span><span>${d.loans?'🏦 Kredite':'🚫 keine Kredite'}</span><span>${d.ads?'📣 Werbung':'🚫 keine Werbung'}</span><span>${d.manualDay?'⏭️ Tag selbst schalten':'⏳ Tag alle 5 Min.'}</span>${d.luck<1?'<span>🍀 10 % mehr Pech</span>':''}<span>${d.cost>1?'💸 Preise +'+Math.round((d.cost-1)*100)+' %, Ertrag −'+Math.round((1-d.inc)*100)+' %':'💸 normale Preise'}</span>${d.loseAt?'<span>💀 Pleite unter '+euro(d.loseAt)+'</span>':''}</span></button>`).join('');
+ document.querySelectorAll('[data-diff]').forEach(b=>b.onclick=()=>{if(createMode==='duo')createDuoRoom(b.dataset.diff);else newGame(b.dataset.diff)});
+ $('startScreen').classList.remove('hidden');
+}
+$('reset').onclick=()=>{if(started&&!confirm('Möchtest du wirklich neu starten?'))return;showLobby()};
+
+const mmss=s=>Math.floor(s/60)+':'+String(Math.max(0,s)%60).padStart(2,'0');
+const loanAmount=l=>Math.floor(Math.max(0,wealth())*l.share/10)*10;
+function renderBank(){
+ let m=(duo||!D.loans)?'nobank':loan?'loan':bankBlock>0?'block':st.seconds<BANK_OPEN?'closed':'offer',el=$('bank');
+ if(m!==lastBankMode){lastBankMode=m;
+  if(m==='nobank')el.innerHTML=duo?`<p class="bsmall" style="margin:0">🤝 Im Duo-Modus gibt es keine Bank – ihr wirtschaftet zusammen ohne Kredite.</p>`:`<p class="bsmall" style="margin:0">💀 <b>Hardcore:</b> Die Bank gibt dir keine Kredite. Du bist auf dich allein gestellt!</p>`;
+  if(m==='closed')el.innerHTML=`<p class="bsmall" style="margin:0">🔒 Die Bank kennt dich noch nicht. Zeig erst, dass du wirtschaften kannst!<br>Die Bank öffnet in <b id="bOpen"></b></p>`;
+  if(m==='offer'){el.innerHTML=`<p class="bsmall">Zurückzahlen in <b>1:30 Min.</b> – sonst verkauft die Bank deine Aktien! <br>⭐ Kreditwürdigkeit: <b id="bCredit"></b></p><div class="loans">`+
+   LOANS.map((l,i)=>`<button class="loanbtn" data-loan="${i}" title="${Math.round(l.share*100)} % deines Vermögens"><span class="e">${l.e}</span><b>${l.name}</b><span class="amt" id="la${i}"></span><small id="lr${i}"></small></button>`).join('')+'</div>';
+   el.querySelectorAll('[data-loan]').forEach(b=>b.onclick=()=>takeLoan(+b.dataset.loan));}
+  if(m==='loan'){el.innerHTML=`<div class="loanbox"><div class="row"><span>${loan.e} ${loan.name}</span><b>${euro(loan.amount)}</b></div>
+   <div class="row"><span>Zurückzahlen (+${Math.round(loan.rate*100)} %)</span><b class="neg">${euro(loan.owe)}</b></div>
+   <div class="bar"><i id="lBar"></i></div><div class="row"><span>⏳ Fällig in</span><b id="lLeft"></b></div>
+   <button class="btn green" id="repay" style="padding:7px">✓ Jetzt zurückzahlen</button></div>`;$('repay').onclick=repayLoan;}
+  if(m==='block')el.innerHTML=`<p class="bsmall" style="margin:0">😠 Die Bank vertraut dir nicht mehr, weil du deinen Kredit nicht zahlen konntest.<br>Wieder möglich in <b id="bBlock"></b></p>`;
+ }
+ if(m==='closed')$('bOpen').textContent=mmss(BANK_OPEN-st.seconds);
+ if(m==='offer'){$('bCredit').textContent=credit===1?'1 Kredit zurückgezahlt':credit+' Kredite zurückgezahlt';
+  LOANS.forEach((l,i)=>{let a=loanAmount(l),locked=credit<l.need,btn=document.querySelector(`[data-loan="${i}"]`);
+   $('la'+i).textContent=locked?'🔒':a>=10?euro(a):'—';
+   $('lr'+i).textContent=locked?'nach '+l.need+(l.need===1?' Kredit':' Krediten'):'+'+Math.round(l.rate*100)+' % Zinsen';
+   btn.disabled=locked||a<10;btn.title=locked?'Zahl erst '+l.need+(l.need===1?' Kredit':' Kredite')+' pünktlich zurück':Math.round(l.share*100)+' % deines Vermögens, +'+Math.round(l.rate*100)+' % Zinsen'})}
+ if(m==='loan'){let u=loan.left<=20;$('lLeft').textContent=mmss(loan.left);$('lLeft').className=u?'neg':'';
+  $('lBar').style.width=(loan.left/LOAN_TIME*100)+'%';$('lBar').classList.toggle('urgent',u);
+  $('repay').disabled=cash<loan.owe;$('repay').textContent=cash<loan.owe?'Noch '+euro(loan.owe-cash)+' fehlen':'✓ Jetzt zurückzahlen · '+euro(loan.owe);}
+ if(m==='block')$('bBlock').textContent=mmss(bankBlock);
+ $('loanPill').classList.toggle('hidden',!loan);
+ if(loan){$('loanPillTxt').textContent=mmss(loan.left)+' · '+euro(loan.owe);$('loanPill').classList.toggle('urgent',loan.left<=20)}
+}
+function takeLoan(i){
+ if(!D.loans){toast('💀 Im Hardcore-Modus gibt es keine Kredite!');return}
+ if(loan){toast('Du hast schon einen Kredit – nur einer gleichzeitig!');return}
+ if(bankBlock>0){toast('Die Bank vertraut dir gerade nicht. 😠');return}
+ if(st.seconds<BANK_OPEN){toast('Die Bank ist noch nicht offen.');return}
+ let l=LOANS[i],amt=loanAmount(l);if(credit<l.need){toast('🔒 Die Bank vertraut dir noch nicht genug für den '+l.name+'.');return}
+ if(amt<10){toast('Dein Vermögen ist zu klein für einen Kredit.');return}
+ loan={...l,amount:amt,owe:Math.round(amt*(1+l.rate)*100)/100,left:LOAN_TIME};cash+=amt;
+ addNews('🏦 '+l.name+' über '+euro(amt)+' aufgenommen – '+euro(loan.owe)+' in 1:30 zurückzahlen!','trade');toast('🏦 +'+euro(amt)+' von der Bank!');bump('cashBox');render();
+}
+function repayLoan(){
+ if(!loan)return;if(cash<loan.owe){toast('Nicht genug Geld zum Zurückzahlen!');return}
+ cash-=loan.owe;credit++;addNews('✅ Kredit über '+euro(loan.amount)+' zurückgezahlt ('+euro(loan.owe-loan.amount)+' Zinsen).','good');toast('✅ Kredit zurückgezahlt!');loan=null;render();
+}
+// Kredit fällig: erst Bargeld, dann verkauft die Bank deine Aktien (billigste zuerst). Reicht es nicht → Bank-Sperre.
+function loanDue(){
+ if(cash>=loan.owe){cash-=loan.owe;credit++;addNews('🏦 Kredit automatisch zurückgezahlt (−'+euro(loan.owe)+').','trade');toast('🏦 Kredit wurde automatisch abgebucht.');loan=null;return}
+ let owned=stocks.filter(s=>s.shares).sort((a,b)=>a.price-b.price);
+ for(let s of owned){if(cash>=loan.owe)break;cash+=s.price;s.shares=0;st.sells++;addNews('🏦 Die Bank hat deine '+s.name+'-Aktie für '+euro(s.price)+' verkauft!','bad')}
+ if(cash>=loan.owe){cash-=loan.owe;credit=0;toast('😬 Die Bank hat Aktien verkauft, um den Kredit zu bezahlen!');loan=null;return}
+ addNews('😠 Kredit nicht bezahlt! Die Bank nimmt alles ('+euro(cash)+') und sperrt dich für 3 Min.','bad');
+ toast('😠 Pleite! Die Bank sperrt dich für 3 Minuten.');cash=0;loan=null;bankBlock=BANK_BLOCK;credit=0;
+}
+// Jede Sekunde: 3 % des Kurses jeder Aktie + Verdienst der Mitarbeiter gutschreiben, Gehälter abziehen
+setInterval(()=>{
+ if(!started)return;
+ if(duo&&duo.role==='guest'){
+  // Gast: Aktien, Tag, Krisen & Bank kommen vom Host – wir kümmern uns nur um unser eigenes Team/Grundstück
+  rollTimer++;if(rollTimer>=HIRE_ROLL){rollTimer=0;rerollHires()}
+  if(checkLose())return;
+  renderStats();renderStatPanel();updateTools();
+  if(view==='land')renderTeam();
+  duoSend({t:'land',buildings,staff});
+  return;
+ }
+ stocks.forEach(wobble);
+ // Krisen (Schwer/Hardcore): selten kostet eine eigene Aktie ein paar Sekunden lang Geld
+ stocks.forEach(s=>{if(s.crisis>0){s.crisis--;if(!s.crisis)addNews('😮‍💨 Die Krise bei '+s.name+' ist vorbei.','good')}});
+ if(D.crisis&&Math.random()<D.crisis){let own=stocks.filter(s=>s.shares&&!s.crisis);
+  if(own.length){let s=own[Math.floor(Math.random()*own.length)];s.crisis=3+Math.floor(Math.random()*6);
+   addNews('📉 Krise bei '+s.name+'! Kostet dich '+s.crisis+' Sek. lang Geld.','bad');toast('📉 Krise bei '+s.name+'!')}}
+ let before=staff.length,loanBefore=!!loan,ownedBefore=ownedCount();
+ if(!duo){if(loan){loan.left--;if(loan.left===20||loan.left===10)toast('⏰ Noch '+loan.left+' Sekunden für deinen Kredit! ('+euro(loan.owe)+')');if(loan.left<=0)loanDue()}
+ if(bankBlock>0)bankBlock--;}
+ st.seconds++;let w=wealth();st.peak=Math.max(st.peak,w);st.wealth.push(w);if(st.wealth.length>120)st.wealth.shift();
+ rollTimer++;if(rollTimer>=HIRE_ROLL){rollTimer=0;rerollHires()}
+ if(!D.manualDay){dayTimer--;if(dayTimer<=0){nextDay();toast('☀️ Tag '+day+' – der Börsentag ist automatisch weitergelaufen!')}}
+ if(checkLose())return;
+ if(staff.length!==before){render();toast('😢 Ein Mitarbeiter hat gekündigt!')}
+ else if(loanBefore!==!!loan||ownedBefore!==ownedCount())render();
+ else{renderStats();renderStatPanel();updateTools();renderBank();if(view==='land')renderTeam();else{liveMarket();renderDetail();renderHoldings()}}
+ if(duo&&duo.role==='host'){broadcastState();duoSend({t:'land',buildings,staff})}
+},1000);
+// Zahltag: alle 2,5 Sekunden gibt es Geld (Aktien + Team), Gehälter werden dabei abgezogen
+setInterval(()=>{
+ if(!started)return;
+ let before=staff.length,mm=moneyMult(),team=staffEarn()*PAY_EVERY*mm;
+ if(duo&&duo.role==='guest'){
+  // Gast: Aktienertrag rechnet der Host; wir tragen nur unser eigenes Team-Gehalt per Delta bei
+  cashDelta(team);st.team+=team;
+  while(staff.length&&cash<salary()*PAY_EVERY)fireWorst('kein Geld fürs Gehalt!');
+  let pay=salary()*PAY_EVERY;cashDelta(-pay);st.paid+=pay;
+  let net=team-pay;if(net)floatText((net>0?'+':'')+euro(net),net<0);
+  if(checkLose())return;
+  if(staff.length!==before){render();toast('😢 Ein Mitarbeiter hat gekündigt!')}
+  else{renderStats();renderStatPanel();updateTools();if(view==='land')renderTeam()}
+  return;
+ }
+ let inc=incomePerSec()*PAY_EVERY*mm;
+ cash+=inc+team;st.earned+=inc;st.team+=team;
+ let gems=rollDiamonds();
+ // Gehälter zahlen – reicht das Geld nicht, kündigt der schwächste Mitarbeiter
+ while(staff.length&&cash<salary()*PAY_EVERY)fireWorst('kein Geld fürs Gehalt!');
+ let pay=salary()*PAY_EVERY;cash-=pay;st.paid+=pay;
+ let net=inc+team-pay;if(net)floatText((net>0?'+':'')+euro(net),net<0);
+ if(checkLose())return;
+ if(staff.length!==before||gems){render();if(staff.length!==before)toast('😢 Ein Mitarbeiter hat gekündigt!')}
+ else{renderStats();renderTrade();renderStatPanel();updateTools();renderDia();if(view==='land')renderTeam()}
+ if(duo&&duo.role==='host')broadcastState();
+},PAY_EVERY*1000);
+window.addEventListener('resize',()=>{drawLine($('chart'),stock().history.slice(-60),stock().color);renderStatPanel()});
+
+// ===== Entspannte Hintergrundmusik – live im Browser erzeugt (Web Audio), keine Datei nötig =====
+const Music={ctx:null,master:null,bus:null,on:false,timer:null,next:0,step:0,vol:.5,note:2};
+const CHORD_LEN=8; // Sekunden pro Akkord
+// Cmaj7 – Am7 – Fmaj7 – G6 (MIDI-Noten), dazu C-Dur-Pentatonik für die Glöckchen
+const CHORDS=[[48,55,59,64],[45,52,55,60],[41,48,52,57],[43,50,55,59]];
+const SCALE=[72,74,76,79,81,84,86];
+const mtof=m=>440*2**((m-69)/12);
+function musicSetup(){
+ let c=Music.ctx=new (window.AudioContext||window.webkitAudioContext)();
+ Music.master=c.createGain();Music.master.gain.value=0;
+ let lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2200;
+ // Hall aus einer selbst erzeugten Impulsantwort
+ let rev=c.createConvolver(),len=c.sampleRate*3.5,ir=c.createBuffer(2,len,c.sampleRate);
+ for(let ch=0;ch<2;ch++){let d=ir.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.5)}
+ rev.buffer=ir;let wet=c.createGain();wet.gain.value=.55;
+ Music.bus=c.createGain();Music.bus.connect(lp);lp.connect(Music.master);lp.connect(rev);rev.connect(wet);wet.connect(Music.master);
+ Music.master.connect(c.destination);
+}
+function voice(freq,type,t,attack,hold,release,peak,pan=0,detune=0){
+ let c=Music.ctx,o=c.createOscillator(),g=c.createGain(),p=c.createStereoPanner();
+ o.type=type;o.frequency.value=freq;o.detune.value=detune;p.pan.value=pan;
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+attack);
+ g.gain.setValueAtTime(peak,t+attack+hold);g.gain.exponentialRampToValueAtTime(.0001,t+attack+hold+release);
+ o.connect(g);g.connect(p);p.connect(Music.bus);o.start(t);o.stop(t+attack+hold+release+.1);
+}
+function scheduleChord(i,t){
+ let ch=CHORDS[i%CHORDS.length];
+ // weiche Fläche (Pad): zwei leicht verstimmte Stimmen pro Ton
+ ch.forEach((m,k)=>{let pan=(k/(ch.length-1))-.5;
+  voice(mtof(m),'sine',t,2.5,CHORD_LEN-2.5,3,.045,pan,-4);
+  voice(mtof(m),'triangle',t,3,CHORD_LEN-3,3,.018,-pan,5)});
+ voice(mtof(ch[0]-12),'sine',t,1.5,CHORD_LEN-1.5,2.5,.08);           // ruhiger Bass
+ // zufällige Glöckchen-Melodie, wandert sanft durch die Tonleiter
+ for(let s=0;s<16;s++){
+  if(Math.random()<.32){
+   Music.note=Math.max(0,Math.min(SCALE.length-1,Music.note+[-2,-1,-1,1,1,2][Math.floor(Math.random()*6)]));
+   let nt=t+s*.5+Math.random()*.05,f=mtof(SCALE[Music.note]),pan=Math.random()*1.2-.6;
+   voice(f,'sine',nt,.015,.05,2.2,.05,pan);voice(f*2,'sine',nt,.015,.02,1.2,.012,pan);
+  }
+ }
+}
+function musicLoop(){while(Music.next<Music.ctx.currentTime+1.5){scheduleChord(Music.step++,Music.next);Music.next+=CHORD_LEN}}
+function setMusicVol(v){Music.vol=v;if(Music.ctx&&Music.on)Music.master.gain.setTargetAtTime(v*1.5,Music.ctx.currentTime,.3)}
+async function musicStart(){
+ if(!Music.ctx)musicSetup();
+ await Music.ctx.resume();Music.on=true;Music.next=Music.ctx.currentTime+.1;
+ Music.master.gain.cancelScheduledValues(Music.ctx.currentTime);Music.master.gain.setTargetAtTime(Music.vol*1.5,Music.ctx.currentTime,1);
+ musicLoop();Music.timer=setInterval(musicLoop,300);musicUI();
+}
+function musicStop(){
+ Music.on=false;clearInterval(Music.timer);musicUI();
+ if(!Music.ctx)return;let c=Music.ctx;Music.master.gain.setTargetAtTime(0,c.currentTime,.4);
+ setTimeout(()=>{if(!Music.on)c.suspend()},1800);
+}
+function musicUI(){$('musicBtn').textContent=Music.on?'🎵 An':'🎵 Aus';$('musicBtn').classList.toggle('on',Music.on);$('musicBtn').parentElement.classList.toggle('playing',Music.on)}
+const savePref=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},loadPref=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+$('musicBtn').onclick=()=>{Music.on?musicStop():musicStart();savePref('bb_music',Music.on?'1':'0')};
+$('musicVol').oninput=e=>{setMusicVol(+e.target.value);savePref('bb_vol',e.target.value)};
+{let v=loadPref('bb_vol');if(v!==null){$('musicVol').value=v;Music.vol=+v}}
+// Browser erlauben Ton erst nach einem Klick: war die Musik an, startet sie beim ersten Klick wieder
+if(loadPref('bb_music')==='1')document.addEventListener('pointerdown',function f(e){document.removeEventListener('pointerdown',f);if(!Music.on&&e.target.id!=='musicBtn')musicStart()});
+
+render();showLobby();
+</script>
+</body>
+</html>
